@@ -162,3 +162,92 @@ footer.app-footer {
 footer.app-footer button { background: none; border: none; font-size: 11px; color: var(--text-sub); display:flex; flex-direction:column; align-items:center; gap:2px; }
 footer.app-footer button.active { color: var(--brand); font-weight: 700; }
 footer.app-footer button .icon { font-size: 20px; }
+
+.deeplink-error {
+  background: #fde5e2;
+  color: var(--danger);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 13px;
+  margin: 8px 4px 14px;
+}
+
+.fuzzy-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fuzzy-candidate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.fuzzy-candidate .name { font-weight: 700; }
+.fuzzy-candidate .category { font-size: 11px; color: var(--text-sub); }
+
+.feedback-box { margin-top: 16px; text-align: center; }
+.feedback-link {
+  display: inline-block;
+  color: var(--brand);
+  text-decoration: underline;
+  font-size: 13px;
+}
+.feedback-note { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+
+.freshness-banner {
+  background: #fdeecb;
+  color: #8a5a00;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 10px 0;
+  line-height: 1.5;
+}
+.freshness-policy-note { display: block; font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+
+.stale-highrisk-banner {
+  background: #fde5e2;
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.stale-highrisk-banner strong { font-size: 15px; }
+
+.share-block { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.share-btn {
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+}
+.share-url-fallback {
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-sub);
+  background: var(--bg);
+}
+
+/* Desktop: the mobile-first shell stays intact below this width, but on a
+   PC viewport a fixed 480px column reads as an oversized empty margin.
+   Widen the column and let result lists breathe into two columns — no
+   sidebar, no dashboard chrome, no separate desktop design. */
+@media (min-width: 900px) {
+  .app-shell { max-width: 880px; }
+  footer.app-footer { max-width: 880px; }
+  .result-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .fuzzy-suggestions { gap: 10px; }
+}

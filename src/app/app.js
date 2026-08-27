@@ -1,7 +1,22 @@
 /* これどうする？ 名古屋市版 UIロジック（自治体固有アプリ側） */
 (function () {
-  const { resolveActiveWasteItems, searchWasteItems, searchProcedures, suggestSimilar } =
-    window.KoreDousuruCore;
+  const {
+    resolveActiveWasteItems,
+    searchWasteItems,
+    searchProcedures,
+    suggestSimilar,
+    computeRiskLevel,
+    computeFreshness,
+    isHighRiskStale,
+    sanitizeAsOfDate,
+    resolveWasteDeepLink,
+    resolveProcedureDeepLink,
+    buildFeedbackMailto,
+    buildShareUrl,
+  } = window.KoreDousuruCore;
+
+  const DEEPLINK_NOT_FOUND_MESSAGE =
+    "指定された情報を確認できませんでした。最新情報は公式案内をご確認ください。";
 
   const state = {
     config: null,
@@ -10,6 +25,7 @@
     asOfDate: new Date().toISOString().slice(0, 10),
     view: "home",
     tab: "gomi",
+    deepLinkError: null,
   };
 
   const $app = document.getElementById("app");
@@ -99,17 +115,27 @@
   }
 
   function renderZeroResult(query) {
-    const suggestions = suggestSimilar(query, state.wasteItemsAll, 6);
+    // Fuzzy/typo candidates are suggestions only — clicking one navigates to
+    // the normal, officially-confirmed detail card; nothing here is ever
+    // shown as an already-decided answer.
+    const suggestions = suggestSimilar(query, state.wasteItemsAll, 5);
     const categories = [...new Set(state.wasteItemsAll.map((i) => i.category))].slice(0, 10);
+    const feedbackUrl = buildFeedbackMailto(query);
     return `
       <div class="zero-result">
         <div>「${escapeHtml(query)}」に一致する結果が見つかりませんでした。</div>
         ${
           suggestions.length
-            ? `<div class="section-title" style="text-align:left;">似ている品目名から探す</div>
-              <div class="suggestions">
+            ? `<div class="section-title" style="text-align:left;">近い候補があります（似た言葉から探す）</div>
+              <div class="fuzzy-suggestions">
                 ${suggestions
-                  .map((s) => `<button data-waste="${s.item_id}">${escapeHtml(s.display_name)}</button>`)
+                  .map(
+                    (s) => `
+                  <button class="fuzzy-candidate" data-waste="${s.item_id}">
+                    <span class="name">${escapeHtml(s.display_name)}</span>
+                    <span class="category">${escapeHtml(s.category)}</span>
+                  </button>`
+                  )
                   .join("")}
               </div>`
             : ""
@@ -127,15 +153,75 @@
           </div>
           <a class="official-link" href="${state.config.contact.url}" target="_blank" rel="noopener">公式ページを見る</a>
         </div>
+        <div class="feedback-box">
+          <a class="feedback-link" href="${feedbackUrl}">この検索語を改善候補として知らせる</a>
+          <div class="feedback-note">メールアプリが開きます。送信するまで情報は送られません。</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 内部運用ポリシー（名古屋市公式の基準ではない）に基づく情報鮮度判定。
+  function freshnessInfoFor(record, { isDateDependent = false } = {}) {
+    const riskLevel = computeRiskLevel(record, { isDateDependent });
+    const freshness = computeFreshness(record.source_checked_at, riskLevel);
+    return { riskLevel, freshness, stale: isHighRiskStale(riskLevel, freshness.status) };
+  }
+
+  function freshnessBannerHtml({ riskLevel, freshness }) {
+    if (freshness.status !== "REVIEW_DUE") return "";
+    return `
+      <div class="freshness-banner">
+        この情報は再確認期限を過ぎています。最新情報は公式ページでもご確認ください。
+        <span class="freshness-policy-note">（最終確認日を基準にした本サービス内部の運用方針による表示です。名古屋市公式の基準ではありません）</span>
+      </div>
+    `;
+  }
+
+  function shareBlockHtml(params) {
+    const shareUrl = buildShareUrl(location.origin + location.pathname, params);
+    return `
+      <div class="share-block">
+        <button class="share-btn" data-share-url="${escapeHtml(shareUrl)}">🔗 この情報を共有</button>
+        <input class="share-url-fallback" type="text" readonly hidden />
       </div>
     `;
   }
 
   function renderWasteCard(it) {
+    const versionCount = state.wasteItemsAll.filter((x) => x.item_id === it.item_id).length;
+    const { riskLevel, freshness, stale } = freshnessInfoFor(it, { isDateDependent: versionCount > 1 });
+    const share = shareBlockHtml({ waste: it.item_id, asof: state.asOfDate });
+
+    if (stale) {
+      // HIGH risk + past our internal review interval: do not keep asserting
+      // a possibly-outdated hazardous disposal method. Fail safe — surface
+      // the official source and contact instead of the detailed steps.
+      return `
+        <a class="back-link" data-back="1">← 検索結果に戻る</a>
+        <div class="card stale-highrisk-card">
+          <h2>${escapeHtml(it.display_name)} ${statusBadge(it.status)}</h2>
+          <div class="stale-highrisk-banner">
+            <strong>⚠️ 再確認が必要な情報です</strong>
+            <div>この品目は危険物等に関わるため、内部の運用方針上、最終確認から一定期間が過ぎた情報を詳細表示せずお伝えしています。最新の出し方は必ず公式ページでご確認ください。</div>
+            <span class="freshness-policy-note">（名古屋市公式の基準ではなく、本サービス内部の運用方針による表示です）</span>
+          </div>
+          <dl>
+            <div class="row"><dt>カテゴリ</dt><dd>${escapeHtml(it.category)}</dd></div>
+            <div class="row"><dt>公式情報</dt><dd><a class="official-link" href="${it.official_url}" target="_blank" rel="noopener">${escapeHtml(it.official_page_title)}</a></dd></div>
+            <div class="row"><dt>問い合わせ</dt><dd>${escapeHtml(it.department)}<div class="phone-block" style="margin-top:6px;">${it.phone ? `<a href="tel:${it.phone.replace(/[^0-9]/g, "")}">${escapeHtml(it.phone)}</a>` : "未確認"}</div></dd></div>
+            <div class="row"><dt>最終確認日</dt><dd>${escapeHtml(it.source_checked_at)}</dd></div>
+          </dl>
+          ${share}
+        </div>
+      `;
+    }
+
     return `
       <a class="back-link" data-back="1">← 検索結果に戻る</a>
       <div class="card">
         <h2>${escapeHtml(it.display_name)} ${statusBadge(it.status)}</h2>
+        ${freshnessBannerHtml({ riskLevel, freshness })}
         <div class="conclusion"><strong>${escapeHtml(it.category)}</strong>として出してください。${escapeHtml(it.conditions || "")}</div>
         <dl>
           <div class="row"><dt>出し方</dt><dd>${escapeHtml(it.how_to_dispose)}</dd></div>
@@ -151,15 +237,19 @@
           <div class="row"><dt>確認日</dt><dd>${escapeHtml(it.source_checked_at)}</dd></div>
           ${it.notes ? `<div class="row"><dt>備考</dt><dd>${escapeHtml(it.notes)}</dd></div>` : ""}
         </dl>
+        ${share}
       </div>
     `;
   }
 
   function renderProcCard(p) {
+    const { riskLevel, freshness } = freshnessInfoFor(p, { isDateDependent: false });
+    const share = shareBlockHtml({ procedure: p.procedure_id });
     return `
       <a class="back-link" data-back="1">← 検索結果に戻る</a>
       <div class="card">
         <h2>${escapeHtml(p.name)} ${statusBadge(p.status)}</h2>
+        ${freshnessBannerHtml({ riskLevel, freshness })}
         <div class="conclusion">${escapeHtml(p.conclusion)}</div>
         <dl>
           <div class="row"><dt>期限</dt><dd>${escapeHtml(p.deadline)}</dd></div>
@@ -180,6 +270,7 @@
           <div class="row"><dt>確認日</dt><dd>${escapeHtml(p.source_checked_at)}</dd></div>
           ${p.notes ? `<div class="row"><dt>注意事項</dt><dd>${escapeHtml(p.notes)}</dd></div>` : ""}
         </dl>
+        ${share}
       </div>
     `;
   }
@@ -191,6 +282,12 @@
   function render() {
     let body = "";
     const activeItems = currentActiveWasteItems();
+
+    let deepLinkNotice = "";
+    if (state.deepLinkError) {
+      deepLinkNotice = `<div class="deeplink-error">${escapeHtml(state.deepLinkError)}</div>`;
+      state.deepLinkError = null; // show once; do not persist across unrelated re-renders
+    }
 
     if (state.detailWaste) {
       // Look up within the date-resolved active set, not the raw multi-version array —
@@ -275,7 +372,7 @@
       <div class="app-shell">
         ${renderHeader()}
         <div class="notice-banner">${escapeHtml(state.config.disclaimer)}</div>
-        <main>${body}</main>
+        <main>${deepLinkNotice}${body}</main>
         ${renderFooter()}
       </div>
     `;
@@ -372,6 +469,56 @@
       state.asOfDate = dateInput.value;
       render();
     });
+
+    document.querySelectorAll(".share-btn").forEach((el) =>
+      el.addEventListener("click", async () => {
+        const url = el.getAttribute("data-share-url");
+        const fallback = el.nextElementSibling;
+        try {
+          if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("no clipboard api");
+          await navigator.clipboard.writeText(url);
+          const original = el.textContent;
+          el.textContent = "✅ リンクをコピーしました";
+          setTimeout(() => { el.textContent = original; }, 2000);
+        } catch {
+          // Clipboard API unavailable/blocked — fail safe to a visible,
+          // selectable URL instead of a silent no-op.
+          if (fallback) {
+            fallback.hidden = false;
+            fallback.value = url;
+            fallback.select();
+          }
+        }
+      })
+    );
+  }
+
+  // 生データ配列を直接拾わず、必ず現在の municipality/asOfDate/valid_from/valid_to
+  // を解決したactive recordからDeep Linkを解決する（988903b で修正した詳細画面の
+  // バグと同じ種類の再発防止）。不正なID・その日付で有効なレコードが無い場合は
+  // 検索画面へのfail-safeに倒し、404や空白は出さない。
+  function applyDeepLinkFromLocation(wasteItems, procedures) {
+    const params = new URLSearchParams(window.location.search);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    state.asOfDate = sanitizeAsOfDate(params.get("asof"), todayStr);
+
+    const wasteId = params.get("waste");
+    const procId = params.get("procedure");
+    if (wasteId) {
+      const result = resolveWasteDeepLink(wasteItems, wasteId, state.asOfDate);
+      if (result.ok) {
+        state.detailWaste = wasteId;
+      } else {
+        state.deepLinkError = DEEPLINK_NOT_FOUND_MESSAGE;
+      }
+    } else if (procId) {
+      const result = resolveProcedureDeepLink(procedures, procId);
+      if (result.ok) {
+        state.detailProc = procId;
+      } else {
+        state.deepLinkError = DEEPLINK_NOT_FOUND_MESSAGE;
+      }
+    }
   }
 
   async function init() {
@@ -381,6 +528,7 @@
     state.config = config;
     state.wasteItemsAll = wasteItems;
     state.procedures = procedures;
+    applyDeepLinkFromLocation(wasteItems, procedures);
     render();
   }
 

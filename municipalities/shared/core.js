@@ -1,6 +1,11 @@
 /**
  * これどうする？ 共通ロジック（自治体非依存）
  * UI/検索/日付ルール解決を自治体設定・データから分離する。
+ *
+ * 同等ロジックのESモジュール版が src/lib/{search,rules,freshness,deeplink}.js
+ * にある（tests/*.test.js から node:test で直接importするため）。ブラウザの
+ * <script> 非モジュール読み込みと Node ESMテストを両立するため、意図的に
+ * 2箇所に軽量な複製がある（municipalities/obu/README.md 参照）。
  */
 
 // カタカナ→ひらがな正規化（簡易生活者語マッチ用）
@@ -8,10 +13,39 @@ function normalize(s) {
   if (!s) return "";
   return s
     .toString()
+    .normalize("NFKC")
     .trim()
     .toLowerCase()
     .replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60))
     .replace(/\s+/g, "");
+}
+
+// 長音符・中黒・句読点などの表記揺れを吸収する緩い正規化（意味を変えない差異のみ）。
+function normalizeLoose(s) {
+  return normalize(s)
+    .replace(/[ー\-‐‑‒–—―]/g, "")
+    .replace(/[・･]/g, "")
+    .replace(/[。、！？「」『』（）()]/g, "");
+}
+
+// 決定論的・依存ライブラリなしのLevenshtein編集距離（誤字候補検出用）。
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
 }
 
 /**
@@ -31,20 +65,33 @@ function resolveActiveWasteItems(items, onDateStr) {
   });
 }
 
+function haystacksOf(name, aliases) {
+  return [name, ...(aliases || [])];
+}
+
+// 優先順位: ①正規名称完全一致 ②alias完全一致 ③正規化(緩)後完全一致 ④部分一致
+// ⑤(別関数 suggestSimilar) fuzzy/誤字候補。ここでは⑤は返さない — 低信頼一致を
+// 確定回答として混ぜないため。
 function scoreMatch(query, displayName, aliases) {
   const q = normalize(query);
+  const qLoose = normalizeLoose(query);
   if (!q) return 0;
-  const name = normalize(displayName);
-  if (name === q) return 100;
-  if (name.startsWith(q)) return 80;
-  if (name.includes(q)) return 60;
-  for (const a of aliases || []) {
-    const na = normalize(a);
-    if (na === q) return 90;
-    if (na.includes(q) || q.includes(na)) return 50;
+  let score = 0;
+  let isName = true;
+  for (const raw of haystacksOf(displayName, aliases)) {
+    const h = normalize(raw);
+    if (h) {
+      if (h === q) {
+        score = Math.max(score, isName ? 100 : 90); // ① / ②
+      } else if (qLoose && normalizeLoose(raw) === qLoose) {
+        score = Math.max(score, 85); // ③
+      } else if (h.startsWith(q) || h.includes(q) || q.includes(h)) {
+        score = Math.max(score, isName ? 60 : 50); // ④
+      }
+    }
+    isName = false;
   }
-  // 部分一致（生活者語の中の単語が品目名/aliasesに含まれるか）
-  return 0;
+  return score;
 }
 
 function searchWasteItems(query, items) {
@@ -63,22 +110,117 @@ function searchProcedures(query, procedures) {
   return scored.map((x) => x.p);
 }
 
+// Tier⑤: 誤字・表記揺れ候補（Levenshtein距離ベース）。「もしかして」候補として
+// 提示するためだけの関数で、確定回答には絶対に使わない。呼び出し側は必ず
+// ユーザーのクリック等の明示操作を経てから通常の詳細カードを開くこと。
 function suggestSimilar(query, items, limit = 6) {
-  const q = normalize(query);
-  if (!q) return [];
-  const candidates = items
-    .map((it) => {
-      const name = normalize(it.display_name);
-      let dist = 0;
-      for (let i = 0; i < Math.min(q.length, name.length); i++) {
-        if (q[i] === name[i]) dist++;
-      }
-      return { it, dist };
-    })
-    .sort((a, b) => b.dist - a.dist)
-    .slice(0, limit)
-    .map((x) => x.it);
-  return candidates;
+  const q = normalizeLoose(query);
+  if (!q || q.length < 2) return [];
+  const scored = [];
+  for (const it of items) {
+    let best = null;
+    for (const raw of haystacksOf(it.display_name, it.aliases)) {
+      const c = normalizeLoose(raw);
+      if (!c) continue;
+      const dist = levenshtein(q, c);
+      const maxLen = Math.max(q.length, c.length);
+      const ratio = maxLen ? dist / maxLen : 1;
+      if (!best || ratio < best.ratio) best = { dist, ratio };
+    }
+    if (best && best.ratio <= 0.45 && best.dist <= 3) scored.push({ it, ...best });
+  }
+  scored.sort((a, b) => a.ratio - b.ratio || a.dist - b.dist);
+  return scored.slice(0, limit).map((x) => x.it);
+}
+
+// ---- 情報鮮度（内部運用ポリシー。名古屋市公式の基準ではない） ----
+
+const REVIEW_INTERVAL_DAYS = Object.freeze({ HIGH: 30, MEDIUM: 90, LOW: 365 });
+const HIGH_RISK_CATEGORIES = new Set(["電池類", "発火性危険物"]);
+
+function computeRiskLevel(item, { isDateDependent = false } = {}) {
+  if (item?.danger_notes && item.danger_notes !== "該当なし") return "HIGH";
+  if (HIGH_RISK_CATEGORIES.has(item?.category)) return "HIGH";
+  if (isDateDependent) return "HIGH";
+  if (item?.application_required || item?.category === "粗大ごみ") return "MEDIUM";
+  return "LOW";
+}
+
+function computeFreshness(sourceCheckedAt, riskLevel, now = new Date()) {
+  const checked = new Date(`${sourceCheckedAt}T00:00:00+09:00`);
+  const intervalDays = REVIEW_INTERVAL_DAYS[riskLevel] ?? REVIEW_INTERVAL_DAYS.MEDIUM;
+  const nextReviewAt = new Date(checked.getTime() + intervalDays * 86400000);
+  const nowDate = now instanceof Date ? now : new Date(now);
+  const status = nowDate.getTime() > nextReviewAt.getTime() ? "REVIEW_DUE" : "CONFIRMED";
+  const daysOverdue = status === "REVIEW_DUE" ? Math.floor((nowDate - nextReviewAt) / 86400000) : 0;
+  return { status, nextReviewAt, daysOverdue, riskLevel, intervalDays };
+}
+
+function isHighRiskStale(riskLevel, freshnessStatus) {
+  return riskLevel === "HIGH" && freshnessStatus === "REVIEW_DUE";
+}
+
+// ---- Deep Link ----
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidDateString(s) {
+  if (typeof s !== "string" || !DATE_RE.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+function sanitizeAsOfDate(raw, todayStr) {
+  return isValidDateString(raw) ? raw : todayStr;
+}
+
+// 生データ配列を直接拾わない：必ず日付解決済みのactive setから探す。
+// activeにレコードが無い場合（未知ID、またはそのasof時点で有効なレコードが
+// 存在しない）は同じfail-safe（ok:false）として扱う。
+function resolveWasteDeepLink(wasteItemsAll, itemId, asOfDate) {
+  if (!itemId) return { ok: false, reason: "MISSING_ID" };
+  const exists = wasteItemsAll.some((it) => it.item_id === itemId);
+  if (!exists) return { ok: false, reason: "UNKNOWN_ID" };
+  const active = resolveActiveWasteItems(wasteItemsAll, asOfDate);
+  const record = active.find((it) => it.item_id === itemId);
+  if (!record) return { ok: false, reason: "NO_ACTIVE_RECORD_FOR_DATE" };
+  return { ok: true, item: record };
+}
+
+function resolveProcedureDeepLink(procedures, procedureId) {
+  if (!procedureId) return { ok: false, reason: "MISSING_ID" };
+  const record = procedures.find((p) => p.procedure_id === procedureId);
+  if (!record) return { ok: false, reason: "UNKNOWN_ID" };
+  return { ok: true, item: record };
+}
+
+// ---- ゼロ件時の改善フィードバック（静的サイト・自動送信なし） ----
+// mailto: を開くだけ。押した時点では何も送信されない — 送信するかどうか、
+// 何を書くかは利用者がメールアプリ側で決める。
+
+const FEEDBACK_OPERATOR_EMAIL = "koide@imagine-seek.co.jp";
+
+function buildFeedbackMailto(query, operatorEmail = FEEDBACK_OPERATOR_EMAIL) {
+  const subject = `[これどうする？名古屋市版] 検索改善候補: ${query}`;
+  const body = [
+    "検索してヒットしなかった語句:",
+    query,
+    "",
+    "（このメールはこのまま送信するまで送信されません。差し支えなければ、探していたもの・地域などを補足してください）",
+  ].join("\n");
+  return `mailto:${operatorEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+// ---- Deep Link共有URL ----
+
+function buildShareUrl(basePath, params) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== null && v !== undefined && v !== "") qs.set(k, v);
+  }
+  const query = qs.toString();
+  return query ? `${basePath}?${query}` : basePath;
 }
 
 async function loadMunicipality(configPath) {
@@ -93,10 +235,22 @@ async function loadMunicipality(configPath) {
 if (typeof window !== "undefined") {
   window.KoreDousuruCore = {
     normalize,
+    normalizeLoose,
+    levenshtein,
     resolveActiveWasteItems,
     searchWasteItems,
     searchProcedures,
     suggestSimilar,
+    computeRiskLevel,
+    computeFreshness,
+    isHighRiskStale,
+    REVIEW_INTERVAL_DAYS,
+    isValidDateString,
+    sanitizeAsOfDate,
+    resolveWasteDeepLink,
+    resolveProcedureDeepLink,
+    buildFeedbackMailto,
+    buildShareUrl,
     loadMunicipality,
   };
 }
