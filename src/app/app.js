@@ -63,7 +63,7 @@
   function renderHeader() {
     return `
       <header class="app-header">
-        <div class="muni-name">${escapeHtml(state.config.display_name)}版</div>
+        <div class="muni-name">${escapeHtml(state.config.display_name)}版 <span class="unofficial-badge">非公式・実証版</span></div>
         <div class="app-title">${escapeHtml(state.config.app_title)}</div>
         <div class="search-box">
           <input id="search-input" type="search" inputmode="search" placeholder="品目名・手続き名・「引っ越した」など" value="${escapeHtml(state.query || "")}" />
@@ -190,6 +190,7 @@
         <div class="feedback-box">
           <a class="feedback-link" href="${feedbackUrl}">この検索語を改善候補として知らせる</a>
           <div class="feedback-note">メールアプリが開きます。送信するまで情報は送られません。</div>
+          <div class="feedback-note feedback-privacy-note">氏名・住所・電話番号・マイナンバーなどの個人情報は記載しないでください。</div>
         </div>
       </div>
     `;
@@ -432,11 +433,16 @@
           </div>
           <a class="official-link" href="${state.config.contact.url}" target="_blank" rel="noopener">公式ページ</a>
           <p style="font-size:12px;color:var(--text-sub);margin-top:16px;">${escapeHtml(state.config.disclaimer)}</p>
+          <p class="site-copyright">© 2026 これどうする？ project</p>
         </div>
       `;
     } else {
       body = `
         ${renderPriorityNav()}
+        <div class="beta-notice">
+          <strong>公開実証中</strong>
+          <div>検索できなかった言葉や分かりにくい点があれば、下の「問い合わせ」からお知らせください。</div>
+        </div>
         ${
           state.lifeEvents.length
             ? `<div class="section-title">生活の出来事から探す</div>

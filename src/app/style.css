@@ -35,6 +35,17 @@ header.app-header {
 }
 header.app-header .muni-name { font-size: 13px; opacity: 0.85; letter-spacing: 0.02em; }
 header.app-header .app-title { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.unofficial-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-left: 4px;
+}
 
 .search-box {
   margin-top: 12px;
@@ -132,6 +143,22 @@ main { padding: 8px 16px 24px; }
   padding: 8px 16px;
   text-align: center;
 }
+
+.beta-notice {
+  background: #eef7f1;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin: 14px 4px 4px;
+  font-size: 13px;
+  color: var(--brand-dark);
+  line-height: 1.5;
+}
+.beta-notice strong { font-size: 13px; }
+
+.feedback-privacy-note { color: var(--danger); }
+
+.site-copyright { font-size: 11px; color: var(--text-sub); margin-top: 8px; }
 
 .date-picker-row { display:flex; align-items:center; gap:8px; font-size: 12px; color: var(--text-sub); margin: 4px 4px 0; }
 .date-picker-row input { font-size: 12px; }
