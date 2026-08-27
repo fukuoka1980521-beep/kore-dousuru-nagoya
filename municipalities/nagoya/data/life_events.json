@@ -1,0 +1,98 @@
+[
+  {
+    "event_id": "move-in",
+    "display_name": "名古屋市へ引っ越してきたとき",
+    "aliases": [
+      "引っ越してきた",
+      "転入した",
+      "名古屋に来た",
+      "名古屋市に引っ越してきた",
+      "市外から名古屋市に引っ越し",
+      "引っこしてきた",
+      "名古屋に引っ越し"
+    ],
+    "summary": "名古屋市外から名古屋市内に住所を移したときに確認する主な手続です。",
+    "related_procedures": [
+      { "procedure_id": "ngy-proc-01", "condition_label": "多くの方が必要" },
+      { "procedure_id": "ngy-proc-09", "condition_label": "国民健康保険に加入する場合" },
+      { "procedure_id": "ngy-proc-11", "condition_label": "マイナンバーカードをお持ちの場合" },
+      { "procedure_id": "ngy-proc-08", "condition_label": "高校生年代までの子どもがいる場合" }
+    ],
+    "show_waste_link": true,
+    "source_checked_at": "2026-08-28"
+  },
+  {
+    "event_id": "move-out",
+    "display_name": "名古屋市から引っ越すとき",
+    "aliases": [
+      "名古屋市から引っ越す",
+      "転出する",
+      "名古屋を出る",
+      "市外に引っ越す",
+      "名古屋から出て行く"
+    ],
+    "summary": "名古屋市から市外へ住所を移すときに確認する主な手続です。",
+    "related_procedures": [
+      { "procedure_id": "ngy-proc-02", "condition_label": "多くの方が必要" },
+      { "procedure_id": "ngy-proc-10", "condition_label": "国民健康保険に加入している場合" },
+      { "procedure_id": "ngy-proc-11", "condition_label": "マイナンバーカードをお持ちの場合" }
+    ],
+    "show_waste_link": false,
+    "source_checked_at": "2026-08-28"
+  },
+  {
+    "event_id": "move-within-city",
+    "display_name": "名古屋市内で引っ越したとき",
+    "aliases": [
+      "名古屋市内で引っ越した",
+      "区をまたいで引っ越し",
+      "市内で引っ越し",
+      "同じ市内で引っ越した",
+      "区内で引っ越し"
+    ],
+    "summary": "名古屋市内で住所が変わったときに確認する主な手続です。",
+    "related_procedures": [
+      { "procedure_id": "ngy-proc-03", "condition_label": "多くの方が必要" },
+      { "procedure_id": "ngy-proc-11", "condition_label": "マイナンバーカードをお持ちの場合" }
+    ],
+    "show_waste_link": true,
+    "source_checked_at": "2026-08-28"
+  },
+  {
+    "event_id": "birth",
+    "display_name": "子どもが生まれたとき",
+    "aliases": [
+      "子どもが生まれた",
+      "赤ちゃんが生まれた",
+      "出産した",
+      "子供が生まれた",
+      "出産の手続き"
+    ],
+    "summary": "名古屋市内でお子さんが生まれたときに確認する主な手続です。",
+    "related_procedures": [
+      { "procedure_id": "ngy-proc-07", "condition_label": "多くの方が必要" },
+      { "procedure_id": "ngy-proc-08", "condition_label": "多くの方が対象" },
+      { "procedure_id": "ngy-proc-09", "condition_label": "国民健康保険に加入する世帯の場合" }
+    ],
+    "show_waste_link": false,
+    "source_checked_at": "2026-08-28"
+  },
+  {
+    "event_id": "death",
+    "display_name": "家族が亡くなったとき",
+    "aliases": [
+      "家族が亡くなった",
+      "身内が亡くなった",
+      "家族が死んだ",
+      "親が亡くなった",
+      "死亡の手続き"
+    ],
+    "summary": "ご家族が亡くなったときに確認する主な手続です。",
+    "related_procedures": [
+      { "procedure_id": "ngy-proc-12", "condition_label": "多くの方が必要" },
+      { "procedure_id": "ngy-proc-10", "condition_label": "故人が国民健康保険に加入していた場合" }
+    ],
+    "show_waste_link": false,
+    "source_checked_at": "2026-08-28"
+  }
+]

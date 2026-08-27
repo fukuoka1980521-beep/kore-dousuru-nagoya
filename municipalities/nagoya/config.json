@@ -18,7 +18,8 @@
   "ward_list_url": "https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
   "data": {
     "waste_items": "../../municipalities/nagoya/data/waste_items.json",
-    "procedures": "../../municipalities/nagoya/data/procedures.json"
+    "procedures": "../../municipalities/nagoya/data/procedures.json",
+    "life_events": "../../municipalities/nagoya/data/life_events.json"
   },
   "disclaimer": "本サイトは名古屋市の公式サイトではありません。最終的な判断は必ず名古屋市公式情報・窓口でご確認ください。",
   "not_official_notice": "名古屋市の市章・公式キャラクターは使用していません。"

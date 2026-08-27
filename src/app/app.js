@@ -11,6 +11,9 @@
     sanitizeAsOfDate,
     resolveWasteDeepLink,
     resolveProcedureDeepLink,
+    searchLifeEvents,
+    suggestSimilarLifeEvents,
+    resolveLifeEventDeepLink,
     buildFeedbackMailto,
     buildShareUrl,
   } = window.KoreDousuruCore;
@@ -18,13 +21,19 @@
   const DEEPLINK_NOT_FOUND_MESSAGE =
     "指定された情報を確認できませんでした。最新情報は公式案内をご確認ください。";
 
+  // 生活イベントは「該当する可能性がある確認項目」の提示であり、確定判定では
+  // ない（section 15）。全イベント共通のため、データ側に重複させず一箇所で持つ。
+  const LIFE_EVENT_CAUTION = "状況により必要になる主な手続です。該当する項目をご確認ください。";
+
   const state = {
     config: null,
     wasteItemsAll: [],
     procedures: [],
+    lifeEvents: [],
     asOfDate: new Date().toISOString().slice(0, 10),
     view: "home",
     tab: "gomi",
+    detailEvent: null,
     deepLinkError: null,
   };
 
@@ -114,16 +123,41 @@
     `;
   }
 
+  function eventResultItem(e) {
+    return `
+      <div class="result-item event-result-item" data-event="${e.event_id}">
+        <div class="name">${escapeHtml(e.display_name)}</div>
+        <div class="category">生活イベント・${(e.related_procedures || []).length}件の確認項目</div>
+      </div>
+    `;
+  }
+
   function renderZeroResult(query) {
     // Fuzzy/typo candidates are suggestions only — clicking one navigates to
     // the normal, officially-confirmed detail card; nothing here is ever
     // shown as an already-decided answer.
     const suggestions = suggestSimilar(query, state.wasteItemsAll, 5);
+    const eventSuggestions = suggestSimilarLifeEvents(query, state.lifeEvents, 3);
     const categories = [...new Set(state.wasteItemsAll.map((i) => i.category))].slice(0, 10);
     const feedbackUrl = buildFeedbackMailto(query);
     return `
       <div class="zero-result">
         <div>「${escapeHtml(query)}」に一致する結果が見つかりませんでした。</div>
+        ${
+          eventSuggestions.length
+            ? `<div class="section-title" style="text-align:left;">近い生活イベントの候補があります</div>
+              <div class="fuzzy-suggestions">
+                ${eventSuggestions
+                  .map(
+                    (s) => `
+                  <button class="fuzzy-candidate" data-event="${s.event_id}">
+                    <span class="name">${escapeHtml(s.display_name)}</span>
+                  </button>`
+                  )
+                  .join("")}
+              </div>`
+            : ""
+        }
         ${
           suggestions.length
             ? `<div class="section-title" style="text-align:left;">近い候補があります（似た言葉から探す）</div>
@@ -275,6 +309,41 @@
     `;
   }
 
+  // 生活イベントは既存procedureデータへのポインタのみを持ち、期限・電話番号・
+  // 必要書類等は複製しない（Single Source of Truth）。表示時に procedure_id で
+  // 現在のprocedures配列から都度引く。
+  function renderLifeEventCard(e) {
+    const share = shareBlockHtml({ event: e.event_id });
+    const items = (e.related_procedures || [])
+      .map((rel) => {
+        const p = state.procedures.find((x) => x.procedure_id === rel.procedure_id);
+        if (!p) return "";
+        return `
+          <div class="related-proc-card">
+            <div class="related-proc-name">${escapeHtml(p.name)}</div>
+            <div class="related-proc-condition">${escapeHtml(rel.condition_label || "")}</div>
+            <div class="related-proc-deadline">期限: ${escapeHtml(p.deadline || "")}</div>
+            <button type="button" class="related-proc-confirm" data-proc="${p.procedure_id}">確認する</button>
+          </div>
+        `;
+      })
+      .join("");
+    const wasteLink = e.show_waste_link
+      ? `<button type="button" class="event-waste-link" data-nav="gomi">名古屋市のごみ・資源の出し方を確認</button>`
+      : "";
+    return `
+      <a class="back-link" data-back="1">← 検索結果に戻る</a>
+      <div class="card life-event-card">
+        <h2>${escapeHtml(e.display_name)}</h2>
+        <div class="conclusion">${escapeHtml(LIFE_EVENT_CAUTION)}</div>
+        <div class="section-title" style="margin:14px 4px 8px;">まず確認すること</div>
+        <div class="related-proc-list">${items}</div>
+        ${wasteLink}
+        ${share}
+      </div>
+    `;
+  }
+
   function currentActiveWasteItems() {
     return resolveActiveWasteItems(state.wasteItemsAll, state.asOfDate);
   }
@@ -300,10 +369,14 @@
     } else if (state.detailProc) {
       const p = state.procedures.find((x) => x.procedure_id === state.detailProc);
       body = renderProcCard(p);
+    } else if (state.detailEvent) {
+      const e = state.lifeEvents.find((x) => x.event_id === state.detailEvent);
+      body = renderLifeEventCard(e);
     } else if (state.query) {
+      const eventResults = searchLifeEvents(state.query, state.lifeEvents);
       const wasteResults = searchWasteItems(state.query, activeItems);
       const procResults = searchProcedures(state.query, state.procedures);
-      if (wasteResults.length === 0 && procResults.length === 0) {
+      if (eventResults.length === 0 && wasteResults.length === 0 && procResults.length === 0) {
         body = renderZeroResult(state.query);
       } else {
         body = `
@@ -312,6 +385,7 @@
             <input type="date" id="as-of-date" value="${state.asOfDate}" />
             <span>（粗大ごみ2026年10月ルール変更の境界確認用）</span>
           </div>
+          ${eventResults.length ? `<div class="section-title">生活イベント（${eventResults.length}件）</div><div class="result-list">${eventResults.map(eventResultItem).join("")}</div>` : ""}
           ${wasteResults.length ? `<div class="section-title">ごみ・資源（${wasteResults.length}件）</div><div class="result-list">${wasteResults.map(wasteResultItem).join("")}</div>` : ""}
           ${procResults.length ? `<div class="section-title">行政手続（${procResults.length}件）</div><div class="result-list">${procResults.map(procResultItem).join("")}</div>` : ""}
         `;
@@ -363,6 +437,16 @@
     } else {
       body = `
         ${renderPriorityNav()}
+        ${
+          state.lifeEvents.length
+            ? `<div class="section-title">生活の出来事から探す</div>
+              <div class="event-chip-row">
+                ${state.lifeEvents
+                  .map((e) => `<button data-event="${e.event_id}">${escapeHtml(e.display_name)}</button>`)
+                  .join("")}
+              </div>`
+            : ""
+        }
         <div class="section-title">よく検索される品目</div>
         <div class="result-list">${activeItems.slice(0, 5).map(wasteResultItem).join("")}</div>
       `;
@@ -387,6 +471,7 @@
           state.query = input.value;
           state.detailWaste = null;
           state.detailProc = null;
+          state.detailEvent = null;
           render();
         }
       });
@@ -398,6 +483,7 @@
       state.query = input.value;
       state.detailWaste = null;
       state.detailProc = null;
+      state.detailEvent = null;
       render();
     });
 
@@ -407,6 +493,7 @@
         state.query = "";
         state.detailWaste = null;
         state.detailProc = null;
+        state.detailEvent = null;
         state.categoryFilter = null;
         if (key === "gomi") state.view = "gomi";
         else if (key === "hikkoshi") { state.view = "procedures"; state.query = "転入"; }
@@ -422,6 +509,7 @@
         state.query = "";
         state.detailWaste = null;
         state.detailProc = null;
+        state.detailEvent = null;
         state.categoryFilter = null;
         render();
       })
@@ -432,6 +520,7 @@
         state.query = "";
         state.detailWaste = null;
         state.detailProc = null;
+        state.detailEvent = null;
         state.view = "gomi";
         state.categoryFilter = el.getAttribute("data-category");
         render();
@@ -441,6 +530,7 @@
     document.querySelectorAll("[data-waste]").forEach((el) =>
       el.addEventListener("click", () => {
         state.detailWaste = el.getAttribute("data-waste");
+        state.detailEvent = null;
         render();
       })
     );
@@ -448,6 +538,15 @@
       el.addEventListener("click", () => {
         state.detailProc = el.getAttribute("data-proc");
         state.detailWaste = null;
+        state.detailEvent = null;
+        render();
+      })
+    );
+    document.querySelectorAll("[data-event]").forEach((el) =>
+      el.addEventListener("click", () => {
+        state.detailEvent = el.getAttribute("data-event");
+        state.detailWaste = null;
+        state.detailProc = null;
         render();
       })
     );
@@ -455,6 +554,7 @@
       el.addEventListener("click", () => {
         state.detailWaste = null;
         state.detailProc = null;
+        state.detailEvent = null;
         render();
       })
     );
@@ -497,13 +597,14 @@
   // を解決したactive recordからDeep Linkを解決する（988903b で修正した詳細画面の
   // バグと同じ種類の再発防止）。不正なID・その日付で有効なレコードが無い場合は
   // 検索画面へのfail-safeに倒し、404や空白は出さない。
-  function applyDeepLinkFromLocation(wasteItems, procedures) {
+  function applyDeepLinkFromLocation(wasteItems, procedures, lifeEvents) {
     const params = new URLSearchParams(window.location.search);
     const todayStr = new Date().toISOString().slice(0, 10);
     state.asOfDate = sanitizeAsOfDate(params.get("asof"), todayStr);
 
     const wasteId = params.get("waste");
     const procId = params.get("procedure");
+    const eventId = params.get("event");
     if (wasteId) {
       const result = resolveWasteDeepLink(wasteItems, wasteId, state.asOfDate);
       if (result.ok) {
@@ -518,17 +619,25 @@
       } else {
         state.deepLinkError = DEEPLINK_NOT_FOUND_MESSAGE;
       }
+    } else if (eventId) {
+      const result = resolveLifeEventDeepLink(lifeEvents, eventId);
+      if (result.ok) {
+        state.detailEvent = eventId;
+      } else {
+        state.deepLinkError = DEEPLINK_NOT_FOUND_MESSAGE;
+      }
     }
   }
 
   async function init() {
-    const { config, wasteItems, procedures } = await window.KoreDousuruCore.loadMunicipality(
+    const { config, wasteItems, procedures, lifeEvents } = await window.KoreDousuruCore.loadMunicipality(
       "../../municipalities/nagoya/config.json"
     );
     state.config = config;
     state.wasteItemsAll = wasteItems;
     state.procedures = procedures;
-    applyDeepLinkFromLocation(wasteItems, procedures);
+    state.lifeEvents = lifeEvents;
+    applyDeepLinkFromLocation(wasteItems, procedures, lifeEvents);
     render();
   }
 

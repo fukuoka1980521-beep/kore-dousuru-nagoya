@@ -195,6 +195,29 @@ function resolveProcedureDeepLink(procedures, procedureId) {
   return { ok: true, item: record };
 }
 
+// ---- 生活イベント（既存の手続を「何が起きたか」で束ねるだけの索引層） ----
+// display_name/aliasesの形は品目・手続と同じなので、既存のscoreMatch/
+// suggestSimilarをそのまま再利用する（別ロジックを作らない）。
+
+function searchLifeEvents(query, events) {
+  const scored = events
+    .map((e) => ({ e, score: scoreMatch(query, e.display_name, e.aliases) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+  return scored.map((x) => x.e);
+}
+
+function suggestSimilarLifeEvents(query, events, limit = 5) {
+  return suggestSimilar(query, events, limit);
+}
+
+function resolveLifeEventDeepLink(events, eventId) {
+  if (!eventId) return { ok: false, reason: "MISSING_ID" };
+  const record = events.find((e) => e.event_id === eventId);
+  if (!record) return { ok: false, reason: "UNKNOWN_ID" };
+  return { ok: true, item: record };
+}
+
 // ---- ゼロ件時の改善フィードバック（静的サイト・自動送信なし） ----
 // mailto: を開くだけ。押した時点では何も送信されない — 送信するかどうか、
 // 何を書くかは利用者がメールアプリ側で決める。
@@ -225,11 +248,12 @@ function buildShareUrl(basePath, params) {
 
 async function loadMunicipality(configPath) {
   const config = await (await fetch(configPath)).json();
-  const [wasteItems, procedures] = await Promise.all([
+  const [wasteItems, procedures, lifeEvents] = await Promise.all([
     fetch(config.data.waste_items).then((r) => r.json()),
     fetch(config.data.procedures).then((r) => r.json()),
+    config.data.life_events ? fetch(config.data.life_events).then((r) => r.json()) : Promise.resolve([]),
   ]);
-  return { config, wasteItems, procedures };
+  return { config, wasteItems, procedures, lifeEvents };
 }
 
 if (typeof window !== "undefined") {
@@ -249,6 +273,9 @@ if (typeof window !== "undefined") {
     sanitizeAsOfDate,
     resolveWasteDeepLink,
     resolveProcedureDeepLink,
+    searchLifeEvents,
+    suggestSimilarLifeEvents,
+    resolveLifeEventDeepLink,
     buildFeedbackMailto,
     buildShareUrl,
     loadMunicipality,
