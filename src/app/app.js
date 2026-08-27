@@ -193,7 +193,12 @@
     const activeItems = currentActiveWasteItems();
 
     if (state.detailWaste) {
-      const it = state.wasteItemsAll.find((x) => x.item_id === state.detailWaste);
+      // Look up within the date-resolved active set, not the raw multi-version array —
+      // otherwise a multi-version item_id (e.g. pre/post 2026-10-01 rule change) always
+      // renders whichever record happens to appear first, ignoring state.asOfDate.
+      const it =
+        activeItems.find((x) => x.item_id === state.detailWaste) ||
+        state.wasteItemsAll.find((x) => x.item_id === state.detailWaste);
       body = renderWasteCard(it);
     } else if (state.detailProc) {
       const p = state.procedures.find((x) => x.procedure_id === state.detailProc);
