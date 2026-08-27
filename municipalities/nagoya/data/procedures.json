@@ -1,0 +1,428 @@
+[
+  {
+    "procedure_id": "ngy-proc-01",
+    "municipality_id": "nagoya",
+    "name": "転入（名古屋市外から名古屋市への引越し）",
+    "aliases": [
+      "転入届",
+      "名古屋市に引っ越してきた",
+      "引っ越してきた",
+      "市外から引っ越し"
+    ],
+    "conclusion": "異動した日（前住所地からの転出日）から14日以内に、新しく住む区の区役所市民課・支所区民生活課で転入届を行う。",
+    "deadline": "異動した日から14日以内。",
+    "how_to": "前住所地で交付された転出証明書（または特例転出のマイナンバーカード情報）を持って、新住所地の区役所市民課・支所区民生活課の窓口へ本人または同一世帯員が届け出る。マイナンバーカードを持っている場合は「マイナンバーカードを利用した転入届の特例」によりオンラインで転出届を済ませたうえで来庁時の持参書類を減らせる。",
+    "required_documents": [
+      "転出証明書（前住所地発行）またはマイナンバーカードによる特例転出情報",
+      "本人確認書類（マイナンバーカード・運転免許証・旅券等）",
+      "国民健康保険証等（該当者）",
+      "介護保険被保険者証（該当者）"
+    ],
+    "fee": "無料",
+    "window_office": "新しく住む区の区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": true,
+    "related_procedures": [
+      "ngy-proc-02",
+      "ngy-proc-03",
+      "ngy-proc-06",
+      "ngy-proc-08",
+      "ngy-proc-09",
+      "ngy-proc-11"
+    ],
+    "official_url": "https://www.city.nagoya.jp/lifescene/sumai/1034689/1017954.html",
+    "official_page_title": "転入の際に必要な手続き｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": "マイナンバーカード利用の場合の詳細は「マイナンバーカードを利用した転出・転入届（転入届の特例）」ページ参照。"
+  },
+  {
+    "procedure_id": "ngy-proc-02",
+    "municipality_id": "nagoya",
+    "name": "転出（名古屋市から市外への引越し）",
+    "aliases": [
+      "転出届",
+      "名古屋市外に引っ越す",
+      "市外に転出",
+      "引っ越しの手続き"
+    ],
+    "conclusion": "引越しのおよそ30日前から、現住所地の区役所市民課・支所区民生活課で転出届を行い、転出証明書を受け取る（郵送・マイナンバーカードによるオンライン申請も可）。",
+    "deadline": "転出予定日のおおむね30日前から届出可能。転出後は速やかに新住所地で転入届が必要（14日以内）。",
+    "how_to": "現住所地の区役所市民課・支所区民生活課へ本人確認書類を持参して届け出る。郵送の場合は本人確認書類の写しを同封して郵送し、返信用封筒で転出証明書を受け取る。マイナンバーカード保有者はオンラインで転出届の事前作成・提出が可能。",
+    "required_documents": [
+      "本人確認書類（マイナンバーカード・運転免許証・旅券等）",
+      "委任状（代理人の場合）"
+    ],
+    "fee": "無料",
+    "window_office": "現住所地の区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": true,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-11"
+    ],
+    "official_url": "https://www.city.nagoya.jp/lifescene/sumai/1034690/1017951.html",
+    "official_page_title": "転出の際に必要な手続き｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": ""
+  },
+  {
+    "procedure_id": "ngy-proc-03",
+    "municipality_id": "nagoya",
+    "name": "市内転居（名古屋市内での引越し）",
+    "aliases": [
+      "転居届",
+      "名古屋市内で引っ越した",
+      "同じ区内で引っ越し",
+      "区内転居"
+    ],
+    "conclusion": "引越し後14日以内に、新住所地の区役所市民課・支所区民生活課で転居届（住民異動届）を行う。",
+    "deadline": "異動した日から14日以内。",
+    "how_to": "新住所地の区役所市民課・支所区民生活課の窓口で、本人または同一世帯員が住民異動届（転居届）を提出する。",
+    "required_documents": [
+      "本人確認書類（マイナンバーカード・運転免許証・旅券等）",
+      "マイナンバーカード（住所変更のため持参）",
+      "国民健康保険証等（加入者）"
+    ],
+    "fee": "無料",
+    "window_office": "新住所地の区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区の窓口電話番号は区一覧参照。全市共通の制度問合せ先: スポーツ市民局地域振興部住民課 052-972-3114（戸籍住民担当）。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": true,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-11"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kurashi/todokede/1007833/1007834/1007835.html",
+    "official_page_title": "住民基本台帳(住民票)の届出｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": "2026-08-27に全区共通ページ本文を直接確認: 届出期限「異動した日から数えて14日以内」、全市共通問合せ先052-972-3114を確認済み。各区窓口の受付時間・個別電話番号は区ごとに異なるため区一覧を案内する。"
+  },
+  {
+    "procedure_id": "ngy-proc-04",
+    "municipality_id": "nagoya",
+    "name": "住民票の写しの取得",
+    "aliases": [
+      "住民票",
+      "住民票の写し",
+      "住民票がほしい",
+      "住民票 コンビニ",
+      "住民票の取り方"
+    ],
+    "conclusion": "区役所・支所の窓口（1通300円）で取得できる。マイナンバーカード保有者はスマートフォンからの電子申請サービスで郵送請求も可能。コンビニ交付は2026年8月時点で未実施（2026年12月導入予定と案内されている）。",
+    "deadline": "期限なし（必要な都度取得）。",
+    "how_to": "本人または同一世帯員が区役所市民課・支所区民生活課の窓口で申請書に記入し、本人確認書類を提示して交付を受ける。代理人請求は委任状が必要。マイナンバーカードがあれば電子申請サービスで請求し郵送で受け取ることも可能。",
+    "required_documents": [
+      "本人確認書類（マイナンバーカード・運転免許証・旅券等）",
+      "委任状（代理人の場合）"
+    ],
+    "fee": "1通300円",
+    "window_office": "区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": true,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-03",
+      "ngy-proc-05"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kurashi/todokede/1007851/1007863/1034698.html",
+    "official_page_title": "請求に必要な書類〈住民票〉｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": "コンビニ交付（マイナンバーカード利用）は本調査時点（2026-08-27）で名古屋市では未実施。導入時期の候補として2026年12月が案内されているが、実施確定情報は必ず公式サイトで再確認すること（MUNICIPAL_CONFIRMATION_REQUIRED）。"
+  },
+  {
+    "procedure_id": "ngy-proc-05",
+    "municipality_id": "nagoya",
+    "name": "戸籍証明書（戸籍謄本・抄本）の取得",
+    "aliases": [
+      "戸籍謄本",
+      "戸籍抄本",
+      "戸籍証明書",
+      "戸籍が欲しい"
+    ],
+    "conclusion": "本籍地が名古屋市内にある場合、区役所・支所の窓口またはマイナンバーカードによる電子申請サービスで戸籍証明書を取得できる。本籍地が市外の場合は名古屋市では取得できず、本籍地の市区町村へ請求する。",
+    "deadline": "期限なし（必要な都度取得）。",
+    "how_to": "本籍地がある区の区役所市民課・支所区民生活課の窓口で申請するか、マイナンバーカードを使った電子申請サービスで郵送請求する。本籍地が名古屋市外の場合は本籍地の自治体へ請求する必要がある。",
+    "required_documents": [
+      "本人確認書類（マイナンバーカード・運転免許証・旅券等）",
+      "委任状（代理人の場合）"
+    ],
+    "fee": "戸籍全部事項証明書(戸籍謄本)/戸籍個人事項証明書(戸籍抄本): 1通450円／除籍謄本: 1通750円／戸籍の附票の写し: 1通300円",
+    "window_office": "本籍地の区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": true,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-04",
+      "ngy-proc-07"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kurashi/todokede/1007816/1007817.html",
+    "official_page_title": "戸籍全部事項証明書（戸籍謄本）・住民票の写しなどの証明｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": "2026-08-27に全区共通の公式手数料ページ本文を直接確認済み。"
+  },
+  {
+    "procedure_id": "ngy-proc-06",
+    "municipality_id": "nagoya",
+    "name": "印鑑登録・印鑑登録証明書",
+    "aliases": [
+      "印鑑登録",
+      "実印登録",
+      "印鑑証明書",
+      "印鑑証明"
+    ],
+    "conclusion": "満15歳以上（成年被後見人を除く）で名古屋市に住民登録がある人は、区役所・支所の窓口で登録する印鑑と本人確認書類を持参すれば即日登録できる（本人確認書類がない場合は郵送照会となり即日登録不可）。",
+    "deadline": "期限なし（任意登録）。",
+    "how_to": "登録する印鑑と本人確認書類（運転免許証・旅券・マイナンバーカード等）を持って区役所市民課・支所区民生活課の窓口へ本人が出向く。代理人の場合は委任状（登録者本人記入）と代理人の本人確認書類が必要で、即日登録できず照会書郵送による後日登録となる。",
+    "required_documents": [
+      "登録する印鑑",
+      "本人確認書類（運転免許証・旅券・マイナンバーカード等）",
+      "委任状（代理人の場合）"
+    ],
+    "fee": "印鑑登録証明書: 1通300円（登録自体の手数料は無料）",
+    "window_office": "区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-04"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kurashi/todokede/1007848/1007849.html",
+    "official_page_title": "印鑑登録申請・印鑑登録証明書・その他の印鑑に関する申請（各種届出と証明制度のご案内）｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": "2026-08-27に全区共通の公式ページ本文を直接確認: 「1通300円」。登録自体の手数料無料は既存記載を維持（本ページで再確認済み）。"
+  },
+  {
+    "procedure_id": "ngy-proc-07",
+    "municipality_id": "nagoya",
+    "name": "出生届",
+    "aliases": [
+      "出生届",
+      "子どもが生まれた",
+      "赤ちゃん 届出",
+      "出産 手続き"
+    ],
+    "conclusion": "生まれた日から14日以内に、子の本籍地・届出人の所在地・出生地のいずれかの区役所・支所で出生届を提出する。",
+    "deadline": "生まれた日から14日以内。",
+    "how_to": "父または母（届出できない場合は法定の順序に従い同居者等）が、子の本籍地・届出人の所在地・出生地いずれかの区役所市民課・支所区民生活課の窓口へ届書を提出する。",
+    "required_documents": [
+      "出生届書",
+      "出生証明書（医師・助産師が記入したもの）",
+      "母子健康手帳",
+      "国民健康保険資格確認書（加入者のみ）"
+    ],
+    "fee": "無料",
+    "window_office": "子の本籍地／届出人の所在地／出生地いずれかの区役所 市民課・支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "052-972-3114（スポーツ市民局 住民課）／各区窓口は区一覧参照",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-08",
+      "ngy-proc-09"
+    ],
+    "official_url": "https://www.city.nagoya.jp/sportsshimin/page/0000011489.html",
+    "official_page_title": "出生・死亡届｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": ""
+  },
+  {
+    "procedure_id": "ngy-proc-08",
+    "municipality_id": "nagoya",
+    "name": "児童手当の申請",
+    "aliases": [
+      "児童手当",
+      "子ども手当",
+      "児童手当の申請方法"
+    ],
+    "conclusion": "名古屋市内に住所があり高校生年代までの子どもを養育している場合、居住区の区役所民生子ども課・支所子ども担当で申請する。認定されると原則申請月の翌月分から支給される。",
+    "deadline": "出生・転入等の事由発生から速やかに申請（月をまたぐと支給開始が遅れる場合があるため早めの申請が必要）。",
+    "how_to": "居住区の区役所民生子ども課・支所子ども担当の窓口で申請書を提出する。郵送での申請も可能。",
+    "required_documents": [
+      "印鑑（窓口に本人が来所し自著する場合は不要な場合あり）",
+      "申請者名義の預金通帳またはキャッシュカード",
+      "健康保険証",
+      "個人番号（マイナンバー）カードまたは通知カード",
+      "本人確認書類（窓口に来る人の運転免許証等）"
+    ],
+    "fee": "無料",
+    "window_office": "区役所 民生子ども課／支所 子ども担当",
+    "district_dependent": true,
+    "department_name": "区役所 民生子ども課／支所 子ども担当",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-07"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kodomo/ninshin/1008971/1008973.html",
+    "official_page_title": "児童手当｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": ""
+  },
+  {
+    "procedure_id": "ngy-proc-09",
+    "municipality_id": "nagoya",
+    "name": "国民健康保険の加入手続き",
+    "aliases": [
+      "国保加入",
+      "国民健康保険 入る",
+      "会社を辞めた 保険",
+      "転入 保険"
+    ],
+    "conclusion": "職場の健康保険をやめた・名古屋市に転入した・出産した等の事由が発生した日から14日以内に、居住区の区役所保険年金課・支所区民福祉課で加入手続きを行う。",
+    "deadline": "原則として事実が発生した日から14日以内。",
+    "how_to": "居住区の区役所保険年金課・支所区民福祉課の窓口で、事由に応じた証明書類（資格喪失証明書・転出証明書・出産証明等）を提示して申請する。",
+    "required_documents": [
+      "健康保険資格喪失証明書・退職証明書・離職票のいずれか（職場保険をやめた場合）",
+      "転出証明書（市外から転入した場合）",
+      "母子健康手帳・出生証明書等（出産した場合）",
+      "本人確認書類"
+    ],
+    "fee": "無料（保険料は別途賦課）",
+    "window_office": "区役所 保険年金課／支所 区民福祉課",
+    "district_dependent": true,
+    "department_name": "区役所 保険年金課／支所 区民福祉課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-10"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kurashi/hoken/1011736/1011750/1011752.html",
+    "official_page_title": "国民健康保険の届出や申請に必要なもの｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": ""
+  },
+  {
+    "procedure_id": "ngy-proc-10",
+    "municipality_id": "nagoya",
+    "name": "国民健康保険の脱退（資格喪失）手続き",
+    "aliases": [
+      "国保脱退",
+      "国民健康保険 やめる",
+      "就職した 保険",
+      "転出 保険"
+    ],
+    "conclusion": "就職して職場の健康保険に加入した・名古屋市外に転出した・死亡した等の事由が発生した日から14日以内に、居住区の区役所保険年金課・支所区民福祉課で脱退手続きを行う。",
+    "deadline": "原則として事実が発生した日から14日以内。",
+    "how_to": "居住区の区役所保険年金課・支所区民福祉課の窓口で、事由に応じた証明書類を提示して届け出る。",
+    "required_documents": [
+      "職場の健康保険資格確認書または資格情報のお知らせ（就職した場合）",
+      "国民健康保険の資格確認書または資格情報のお知らせ（転出する場合）",
+      "死亡を証明するもの（死亡の場合）"
+    ],
+    "fee": "無料",
+    "window_office": "区役所 保険年金課／支所 区民福祉課",
+    "district_dependent": true,
+    "department_name": "区役所 保険年金課／支所 区民福祉課",
+    "phone": "各区で異なる。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-02",
+      "ngy-proc-09",
+      "ngy-proc-12"
+    ],
+    "official_url": "https://www.city.nagoya.jp/kurashi/hoken/1011736/1011750/1011752.html",
+    "official_page_title": "国民健康保険の届出や申請に必要なもの｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": ""
+  },
+  {
+    "procedure_id": "ngy-proc-11",
+    "municipality_id": "nagoya",
+    "name": "マイナンバーカードの住所変更・記載事項変更",
+    "aliases": [
+      "マイナンバー 住所変更",
+      "マイナンバーカード 引っ越し",
+      "マイナンバーカード 氏名変更"
+    ],
+    "conclusion": "住所や氏名が変わったときは、変更から14日以内に区役所市民課・支所区民生活課の窓口でマイナンバーカードの券面記載事項変更（継続利用）の手続きを行う。転入・転居・転出の住民異動届の際にカードを持参すれば同時に手続きできる。",
+    "deadline": "変更（異動）から14日以内。",
+    "how_to": "住民異動届（転入・転居・転出）を行う際にマイナンバーカードを持参し、同じ窓口で券面事項変更を行う。カードを持参し忘れた場合は後日改めて手続きが必要。",
+    "required_documents": [
+      "マイナンバーカード",
+      "本人確認書類（暗証番号入力のため本人来庁が原則）"
+    ],
+    "fee": "無料",
+    "window_office": "区役所 市民課／支所 区民生活課",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課",
+    "phone": "各区の窓口電話番号は区一覧参照。全市共通の制度問合せ先: スポーツ市民局地域振興部住民課 052-972-3114（戸籍住民担当）。区一覧: https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-01",
+      "ngy-proc-02",
+      "ngy-proc-03"
+    ],
+    "official_url": "https://www.city.nagoya.jp/naka/kurashi/1036630/1037836.html",
+    "official_page_title": "マイナンバーカードに関する各種お手続きのご案内｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": "住民異動届の全区共通ページ（ngy-proc-03と同一情報源）で「異動した日から14日以内」の期限を確認済み。マイナンバーカード関連の全市共通の問合せ先として住民課052-972-3114を案内。区ごとの個別番号は区一覧を参照。"
+  },
+  {
+    "procedure_id": "ngy-proc-12",
+    "municipality_id": "nagoya",
+    "name": "死亡時の主要手続入口（おくやみコーナー）",
+    "aliases": [
+      "死亡届",
+      "家族が亡くなった",
+      "身内が死んだ 手続き",
+      "おくやみコーナー"
+    ],
+    "conclusion": "死亡の事実を知った日から7日以内に死亡届を提出する。あわせて年金・国民健康保険・介護保険等の手続きが必要になるため、各区役所・支所に設置された「おくやみコーナー」で必要な手続きの一覧確認と申請書作成支援を受けられる。",
+    "deadline": "死亡届は死亡の事実を知った日から7日以内。関連する国保・年金等の手続きにも別途期限があるため早めの来庁が必要。",
+    "how_to": "死亡者の本籍地・届出人の所在地・死亡地いずれかの区役所市民課・支所区民生活課へ死亡届を提出する。その後、居住区のおくやみコーナーで国民健康保険・介護保険・年金等の関連手続きについて案内を受け、必要書類の作成支援を受けられる。",
+    "required_documents": [
+      "死亡届書",
+      "死亡診断書（または死体検案書）",
+      "健康保険証・年金手帳等（該当者）"
+    ],
+    "fee": "無料",
+    "window_office": "死亡者の本籍地／届出人の所在地／死亡地いずれかの区役所 市民課・支所 区民生活課（おくやみコーナーは居住区の区役所・支所）",
+    "district_dependent": true,
+    "department_name": "区役所 市民課／支所 区民生活課、おくやみコーナー",
+    "phone": "052-972-3114（スポーツ市民局 住民課）／各区窓口は区一覧参照",
+    "business_hours": "月曜日〜金曜日 午前8時45分〜午後5時15分（土日祝・年末年始を除く）",
+    "online_available": false,
+    "related_procedures": [
+      "ngy-proc-10"
+    ],
+    "official_url": "https://www.city.nagoya.jp/sportsshimin/page/0000011489.html",
+    "official_page_title": "出生・死亡届｜名古屋市公式ウェブサイト",
+    "source_checked_at": "2026-08-27",
+    "status": "CONFIRMED_OFFICIAL",
+    "notes": ""
+  }
+]

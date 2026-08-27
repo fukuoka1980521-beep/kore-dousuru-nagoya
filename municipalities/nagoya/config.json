@@ -1,0 +1,25 @@
+{
+  "municipality_id": "nagoya",
+  "display_name": "名古屋市",
+  "display_name_full": "名古屋市版",
+  "app_title": "これどうする？",
+  "priority_nav": [
+    { "key": "gomi", "label": "ごみ", "icon": "🗑️" },
+    { "key": "hikkoshi", "label": "引越し", "icon": "🏠" },
+    { "key": "juminhyo", "label": "住民票", "icon": "📄" },
+    { "key": "kosodate", "label": "子育て", "icon": "👶" }
+  ],
+  "contact": {
+    "name": "名古屋おしえてダイヤル",
+    "phone": "052-953-7584",
+    "hours": "8:00〜21:00（年中無休）",
+    "url": "https://www.city.nagoya.jp/shisei/kouchou/1028239/1035028.html"
+  },
+  "ward_list_url": "https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html",
+  "data": {
+    "waste_items": "../../municipalities/nagoya/data/waste_items.json",
+    "procedures": "../../municipalities/nagoya/data/procedures.json"
+  },
+  "disclaimer": "本サイトは名古屋市の公式サイトではありません。最終的な判断は必ず名古屋市公式情報・窓口でご確認ください。",
+  "not_official_notice": "名古屋市の市章・公式キャラクターは使用していません。"
+}
