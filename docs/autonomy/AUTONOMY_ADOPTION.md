@@ -1,7 +1,7 @@
 ---
 standard_id: FCC-AUTONOMY-STANDARD
-standard_version: "1.10.0"
-standard_sha256: "706cf5eba7c2eb0893bb4f356b0db5e48290014664248721f96996cd7c08caa1"
+standard_version: "1.11.0"
+standard_sha256: "1841645a1f92fe9da278bb70c761bf574a17356ad47ea7f181a99d0115556b90"
 project_id: kore-dousuru-nagoya-deploy
 risk_profile: STANDARD
 autonomy_level: STANDARD
@@ -38,7 +38,7 @@ generated_by: formation-control-center/scripts/apply_autonomy_standard.py
 
 | 参照先 | 内容 |
 |---|---|
-| `formation-control-center/docs/autonomy/AUTONOMOUS_DEVELOPMENT_STANDARD.md` | 工程・必須原則・重大停止条件（`standard_version=1.10.0`, `sha256=706cf5eba7c2eb0893bb4f356b0db5e48290014664248721f96996cd7c08caa1`） |
+| `formation-control-center/docs/autonomy/AUTONOMOUS_DEVELOPMENT_STANDARD.md` | 工程・必須原則・重大停止条件（`standard_version=1.11.0`, `sha256=1841645a1f92fe9da278bb70c761bf574a17356ad47ea7f181a99d0115556b90`） |
 | `formation-control-center/config/project-registry.yaml` | 本プロジェクトの適用プロファイル |
 | `development-os/docs/08_自律完遂境界.md` | 上位由来（`DEVOS-CANON-08`） |
 
