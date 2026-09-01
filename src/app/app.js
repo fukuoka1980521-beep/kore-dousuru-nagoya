@@ -16,6 +16,10 @@
     resolveLifeEventDeepLink,
     buildFeedbackMailto,
     buildShareUrl,
+    NOT_LISTED_IN_BRANCH,
+    wardHasBranch,
+    getBranchJurisdiction,
+    resolveTownOffice,
   } = window.KoreDousuruCore;
 
   const DEEPLINK_NOT_FOUND_MESSAGE =
@@ -25,16 +29,31 @@
   // ない（section 15）。全イベント共通のため、データ側に重複させず一箇所で持つ。
   const LIFE_EVENT_CAUTION = "状況により必要になる主な手続です。該当する項目をご確認ください。";
 
+  // 曜日・時間帯による取扱差（日曜窓口・昼休み等）はV0.1ではモデル化せず、
+  // 通常平日窓口の案内に注意書きを添えるだけにとどめる（設計方針）。
+  const OFFICE_HOURS_CAUTION =
+    "曜日・時間帯によって取り扱えない業務があります。来庁前に公式ページをご確認ください。";
+  const OFFICE_UNKNOWN_TOWN_MESSAGE =
+    "この町名では管轄を確認できませんでした。名古屋市公式情報でご確認ください。";
+  const OFFICE_SPLIT_TOWN_MESSAGE =
+    "この町名は区役所と支所で管轄が分かれています。正確な判定は名古屋市公式の行政管轄表でご確認ください。";
+
   const state = {
     config: null,
     wasteItemsAll: [],
     procedures: [],
     lifeEvents: [],
+    offices: [],
+    branchJurisdiction: [],
     asOfDate: new Date().toISOString().slice(0, 10),
     view: "home",
     tab: "gomi",
     detailEvent: null,
     deepLinkError: null,
+    // お住まいの地域から管轄窓口を確認するミニウィジェットの選択状態。
+    // procId で紐付け、別の手続を開いたら自動的にリセットする
+    // （ページ内stateのみ。localStorage等への保存はV0.1では行わない）。
+    officeSelection: { procId: null, ward: "", town: "" },
   };
 
   const $app = document.getElementById("app");
@@ -305,7 +324,127 @@
           <div class="row"><dt>確認日</dt><dd>${escapeHtml(p.source_checked_at)}</dd></div>
           ${p.notes ? `<div class="row"><dt>注意事項</dt><dd>${escapeHtml(p.notes)}</dd></div>` : ""}
         </dl>
+        ${p.district_dependent ? renderOfficeFinder(p) : ""}
         ${share}
+      </div>
+    `;
+  }
+
+  // ---- お住まいの地域から管轄窓口を確認（住所→区役所・支所ナビゲーション） ----
+  // 支所は距離ではなく町名による法定管轄のため、ここでは一切の距離計算・
+  // ジオコーディング・現在地取得を行わない。公式データにない町名は
+  // 「わからない」ものとして扱い、区役所を推測で埋めない（offices.js参照）。
+
+  function officeMapUrl(office) {
+    const q = encodeURIComponent(`${office.official_name} ${office.address}`);
+    return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  }
+
+  function renderOfficeCard(office, roleLabel) {
+    if (!office) {
+      return `<div class="office-result-card">窓口情報を確認できませんでした。名古屋市公式情報でご確認ください。</div>`;
+    }
+    return `
+      <div class="office-result-card">
+        ${roleLabel ? `<div class="office-role-label">${escapeHtml(roleLabel)}</div>` : ""}
+        <div class="office-name">${escapeHtml(office.official_name)}</div>
+        <div class="office-address">〒${escapeHtml(office.postal_code)} ${escapeHtml(office.address)}</div>
+        <div class="office-phone"><a href="tel:${office.phone.replace(/[^0-9]/g, "")}">${escapeHtml(office.phone)}</a></div>
+        <div class="office-hours">${escapeHtml(office.business_hours)}（${escapeHtml(office.closed_days)}）</div>
+        <div class="office-links">
+          <a class="official-link" href="${officeMapUrl(office)}" target="_blank" rel="noopener">地図・経路を見る</a>
+          <a class="official-link" href="${office.official_url}" target="_blank" rel="noopener">名古屋市公式ページ</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderOfficeResult(sel) {
+    if (!sel.ward) return "";
+    const hasBranch = wardHasBranch(state.branchJurisdiction, sel.ward);
+    if (hasBranch && !sel.town) return ""; // 町名待ち
+    const result = resolveTownOffice(state.offices, state.branchJurisdiction, sel.ward, sel.town || null);
+    if (result.kind === "UNKNOWN") {
+      return `
+        <div class="office-result office-result-unknown">
+          <p>${escapeHtml(OFFICE_UNKNOWN_TOWN_MESSAGE)}</p>
+          <a class="official-link" href="${state.config.jurisdiction_table_url}" target="_blank" rel="noopener">名古屋市公式の行政管轄表（支所管内町名一覧）</a>
+        </div>
+      `;
+    }
+    if (result.kind === "SPLIT") {
+      return `
+        <div class="office-result office-result-split">
+          <p>${escapeHtml(OFFICE_SPLIT_TOWN_MESSAGE)}</p>
+          <a class="official-link" href="${state.config.jurisdiction_table_url}" target="_blank" rel="noopener">名古屋市公式の行政管轄表（支所管内町名一覧）</a>
+          ${renderOfficeCard(result.wardOffice, "区役所")}
+          ${renderOfficeCard(result.branchOffice, "支所")}
+          <p class="office-hours-caution">${escapeHtml(OFFICE_HOURS_CAUTION)}</p>
+        </div>
+      `;
+    }
+    // BRANCH または WARD_OFFICE
+    return `
+      <div class="office-result">
+        <div class="section-title" style="margin:10px 4px 6px;">あなたの管轄窓口</div>
+        ${renderOfficeCard(result.office, "")}
+        <p class="office-hours-caution">${escapeHtml(OFFICE_HOURS_CAUTION)}</p>
+      </div>
+    `;
+  }
+
+  function renderOfficeFinder(p) {
+    if (state.officeSelection.procId !== p.procedure_id) {
+      state.officeSelection = { procId: p.procedure_id, ward: "", town: "" };
+    }
+    const sel = state.officeSelection;
+    const wardOffices = state.offices.filter((o) => o.office_type === "WARD_OFFICE");
+    const wardOptions = wardOffices
+      .map((o) => `<option value="${escapeHtml(o.ward)}" ${sel.ward === o.ward ? "selected" : ""}>${escapeHtml(o.ward)}</option>`)
+      .join("");
+
+    let townSelectHtml = "";
+    if (sel.ward && wardHasBranch(state.branchJurisdiction, sel.ward)) {
+      const jurisdiction = getBranchJurisdiction(state.branchJurisdiction, sel.ward);
+      const townOptions = [
+        ...jurisdiction.town_names.map(
+          (t) => `<option value="${escapeHtml(t)}" ${sel.town === t ? "selected" : ""}>${escapeHtml(t)}</option>`
+        ),
+        ...jurisdiction.split_jurisdiction_towns.map(
+          (t) =>
+            `<option value="${escapeHtml(t)}" ${sel.town === t ? "selected" : ""}>${escapeHtml(t)}（区役所・支所で分かれています）</option>`
+        ),
+        `<option value="${NOT_LISTED_IN_BRANCH}" ${sel.town === NOT_LISTED_IN_BRANCH ? "selected" : ""}>この一覧にない（区役所が管轄です）</option>`,
+      ].join("");
+      townSelectHtml = `
+        <label class="office-finder-field">町名を選ぶ
+          <select data-office-town>
+            <option value="">町名を選ぶ</option>
+            ${townOptions}
+          </select>
+        </label>
+      `;
+    }
+
+    const resetHtml =
+      sel.ward
+        ? `<a class="back-link office-finder-reset" data-office-reset="1">← 地域を選び直す</a>`
+        : "";
+
+    return `
+      <div class="office-finder">
+        <div class="section-title" style="margin:14px 4px 8px;">お住まいの地域から管轄窓口を確認</div>
+        <div class="office-finder-controls">
+          <label class="office-finder-field">区を選ぶ
+            <select data-office-ward>
+              <option value="">区を選ぶ</option>
+              ${wardOptions}
+            </select>
+          </label>
+          ${townSelectHtml}
+        </div>
+        ${renderOfficeResult(sel)}
+        ${resetHtml}
       </div>
     `;
   }
@@ -576,6 +715,25 @@
       render();
     });
 
+    const officeWardSelect = document.querySelector("[data-office-ward]");
+    if (officeWardSelect) officeWardSelect.addEventListener("change", () => {
+      state.officeSelection.ward = officeWardSelect.value;
+      state.officeSelection.town = "";
+      render();
+    });
+    const officeTownSelect = document.querySelector("[data-office-town]");
+    if (officeTownSelect) officeTownSelect.addEventListener("change", () => {
+      state.officeSelection.town = officeTownSelect.value;
+      render();
+    });
+    document.querySelectorAll("[data-office-reset]").forEach((el) =>
+      el.addEventListener("click", () => {
+        state.officeSelection.ward = "";
+        state.officeSelection.town = "";
+        render();
+      })
+    );
+
     document.querySelectorAll(".share-btn").forEach((el) =>
       el.addEventListener("click", async () => {
         const url = el.getAttribute("data-share-url");
@@ -636,13 +794,14 @@
   }
 
   async function init() {
-    const { config, wasteItems, procedures, lifeEvents } = await window.KoreDousuruCore.loadMunicipality(
-      "../../municipalities/nagoya/config.json"
-    );
+    const { config, wasteItems, procedures, lifeEvents, offices, branchJurisdiction } =
+      await window.KoreDousuruCore.loadMunicipality("../../municipalities/nagoya/config.json");
     state.config = config;
     state.wasteItemsAll = wasteItems;
     state.procedures = procedures;
     state.lifeEvents = lifeEvents;
+    state.offices = offices;
+    state.branchJurisdiction = branchJurisdiction;
     applyDeepLinkFromLocation(wasteItems, procedures, lifeEvents);
     render();
   }

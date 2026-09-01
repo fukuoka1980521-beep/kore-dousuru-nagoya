@@ -218,6 +218,52 @@ function resolveLifeEventDeepLink(events, eventId) {
   return { ok: true, item: record };
 }
 
+// ---- 住所（町名）→管轄窓口の解決 ----
+// 名古屋市の支所は距離ではなく町名による法定管轄のため、公式データ
+// （municipalities/nagoya/data/branch_jurisdiction.json）に明示的に存在する
+// 町名との完全一致でのみ判定する。推測・あいまい一致・距離計算は行わない。
+// ESモジュール版: src/lib/offices.js（同一ロジック）。
+
+const NOT_LISTED_IN_BRANCH = "__NOT_LISTED_IN_BRANCH__";
+
+function getWardOffice(offices, ward) {
+  return offices.find((o) => o.office_type === "WARD_OFFICE" && o.ward === ward) || null;
+}
+
+function getOfficeById(offices, officeId) {
+  return offices.find((o) => o.office_id === officeId) || null;
+}
+
+function getBranchJurisdiction(branchJurisdiction, ward) {
+  return branchJurisdiction.find((b) => b.ward === ward) || null;
+}
+
+function wardHasBranch(branchJurisdiction, ward) {
+  return getBranchJurisdiction(branchJurisdiction, ward) !== null;
+}
+
+function resolveTownOffice(offices, branchJurisdiction, ward, town) {
+  const jurisdiction = getBranchJurisdiction(branchJurisdiction, ward);
+  if (!jurisdiction) {
+    return { kind: "WARD_OFFICE", office: getWardOffice(offices, ward) };
+  }
+  if (jurisdiction.town_names.includes(town)) {
+    return { kind: "BRANCH", office: getOfficeById(offices, jurisdiction.branch_office_id) };
+  }
+  if (jurisdiction.split_jurisdiction_towns.includes(town)) {
+    return {
+      kind: "SPLIT",
+      town,
+      wardOffice: getWardOffice(offices, ward),
+      branchOffice: getOfficeById(offices, jurisdiction.branch_office_id),
+    };
+  }
+  if (town === NOT_LISTED_IN_BRANCH) {
+    return { kind: "WARD_OFFICE", office: getWardOffice(offices, ward) };
+  }
+  return { kind: "UNKNOWN" };
+}
+
 // ---- ゼロ件時の改善フィードバック（静的サイト・自動送信なし） ----
 // mailto: を開くだけ。押した時点では何も送信されない — 送信するかどうか、
 // 何を書くかは利用者がメールアプリ側で決める。
@@ -248,12 +294,16 @@ function buildShareUrl(basePath, params) {
 
 async function loadMunicipality(configPath) {
   const config = await (await fetch(configPath)).json();
-  const [wasteItems, procedures, lifeEvents] = await Promise.all([
+  const [wasteItems, procedures, lifeEvents, offices, branchJurisdiction] = await Promise.all([
     fetch(config.data.waste_items).then((r) => r.json()),
     fetch(config.data.procedures).then((r) => r.json()),
     config.data.life_events ? fetch(config.data.life_events).then((r) => r.json()) : Promise.resolve([]),
+    config.data.offices ? fetch(config.data.offices).then((r) => r.json()) : Promise.resolve([]),
+    config.data.branch_jurisdiction
+      ? fetch(config.data.branch_jurisdiction).then((r) => r.json())
+      : Promise.resolve([]),
   ]);
-  return { config, wasteItems, procedures, lifeEvents };
+  return { config, wasteItems, procedures, lifeEvents, offices, branchJurisdiction };
 }
 
 if (typeof window !== "undefined") {
@@ -279,5 +329,11 @@ if (typeof window !== "undefined") {
     buildFeedbackMailto,
     buildShareUrl,
     loadMunicipality,
+    NOT_LISTED_IN_BRANCH,
+    getWardOffice,
+    getOfficeById,
+    getBranchJurisdiction,
+    wardHasBranch,
+    resolveTownOffice,
   };
 }

@@ -19,8 +19,11 @@
   "data": {
     "waste_items": "../../municipalities/nagoya/data/waste_items.json",
     "procedures": "../../municipalities/nagoya/data/procedures.json",
-    "life_events": "../../municipalities/nagoya/data/life_events.json"
+    "life_events": "../../municipalities/nagoya/data/life_events.json",
+    "offices": "../../municipalities/nagoya/data/offices.json",
+    "branch_jurisdiction": "../../municipalities/nagoya/data/branch_jurisdiction.json"
   },
+  "jurisdiction_table_url": "https://www.city.nagoya.jp/kurashi/todokede/1007851/1007869/1007871.html",
   "disclaimer": "本サイトは名古屋市の公式サイトではありません。最終的な判断は必ず名古屋市公式情報・窓口でご確認ください。",
   "not_official_notice": "名古屋市の市章・公式キャラクターは使用していません。"
 }

@@ -321,6 +321,68 @@ footer.app-footer button .icon { font-size: 20px; }
   background: var(--bg);
 }
 
+.office-finder {
+  margin-top: 18px;
+  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+}
+.office-finder-controls { display: flex; flex-direction: column; gap: 10px; }
+.office-finder-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.office-finder-field select {
+  font-size: 15px;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+.office-finder-reset { margin: 10px 4px 0; font-size: 13px; }
+.office-result { margin-top: 12px; }
+.office-result-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--surface);
+  margin-top: 8px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.office-role-label {
+  font-size: 12px;
+  color: var(--brand-dark);
+  background: #eef7f1;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+.office-name { font-weight: 700; font-size: 15px; }
+.office-address { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+.office-phone { margin-top: 4px; font-size: 14px; }
+.office-phone a { color: inherit; font-weight: 700; }
+.office-hours { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+.office-links { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+.office-links .official-link { margin-top: 0; }
+.office-hours-caution {
+  font-size: 12px;
+  color: var(--text-sub);
+  background: #fff8ea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 10px;
+}
+.office-result-unknown, .office-result-split {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.office-result-unknown p, .office-result-split p { margin: 0 0 6px; }
+
 /* Desktop: the mobile-first shell stays intact below this width, but on a
    PC viewport a fixed 480px column reads as an oversized empty margin.
    Widen the column and let result lists breathe into two columns — no
@@ -330,4 +392,6 @@ footer.app-footer button .icon { font-size: 20px; }
   footer.app-footer { max-width: 880px; }
   .result-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .fuzzy-suggestions { gap: 10px; }
+  .office-finder-controls { flex-direction: row; gap: 16px; }
+  .office-finder-field { flex: 1; }
 }
