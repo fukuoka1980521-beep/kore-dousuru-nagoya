@@ -58,6 +58,49 @@
 
   const $app = document.getElementById("app");
 
+  // ---- スマホ検索UX（外付け・限定修正） ----
+  // 検索ロジック自体（searchWasteItems等の呼び出し・引数・戻り値）には触れず、
+  // 「検索確定"後"のフォーカス/スクロール制御」と「結果件数の可視化」だけを扱う。
+  // MOBILE_BREAKPOINT は既存のPC拡張ブレークポイント（style.css: @media (min-width: 900px)）
+  // と揃えたしきい値 — これより狭い幅でのみ確定後のblur+スクロールを行い、PCの挙動
+  // （Enter後も入力欄にフォーカスが残る）は変更しない。
+  const MOBILE_BREAKPOINT_QUERY = "(max-width: 899px)";
+  function isMobileViewport() {
+    return typeof window.matchMedia === "function" && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches;
+  }
+
+  // Enter/検索キーで確定した直後の1回だけ、bindEvents側の再フォーカスをスキップして
+  // blur+スクロールを行うためのフラグ。app状態ではなく純粋にUI遷移の一時信号なので
+  // state ではなくモジュールスコープの変数に持つ（render()のたびに作り直されるDOMの
+  // 都合上、次のbindEvents呼び出しの中でのみ参照・消費する）。
+  let pendingMobileSearchBlur = false;
+
+  function confirmSearch(value) {
+    state.query = value;
+    state.detailWaste = null;
+    state.detailProc = null;
+    state.detailEvent = null;
+    if (isMobileViewport()) pendingMobileSearchBlur = true;
+    render();
+  }
+
+  // 検索結果の先頭（「◯件見つかりました」行、0件時は既存の見つかりませんでした行）
+  // まで、固定pxではなく対象要素の実位置を基準にスクロールする。sticky headerの
+  // 高さぶんだけ上に余白を残す。
+  function scrollToSearchFeedback() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById("search-feedback");
+        if (!el) return;
+        const header = document.querySelector("header.app-header");
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const rect = el.getBoundingClientRect();
+        const targetTop = window.scrollY + rect.top - headerHeight - 8;
+        window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
+      });
+    });
+  }
+
   function statusBadge(status) {
     const cls = status === "CONFIRMED_OFFICIAL" ? "confirmed" : status === "PARTIAL" ? "partial" : "unconfirmed";
     const label = status === "CONFIRMED_OFFICIAL" ? "公式確認済" : status === "PARTIAL" ? "一部要確認" : "要確認";
@@ -161,7 +204,7 @@
     const feedbackUrl = buildFeedbackMailto(query);
     return `
       <div class="zero-result">
-        <div>「${escapeHtml(query)}」に一致する結果が見つかりませんでした。</div>
+        <div id="search-feedback">「${escapeHtml(query)}」に一致する結果が見つかりませんでした。</div>
         ${
           eventSuggestions.length
             ? `<div class="section-title" style="text-align:left;">近い生活イベントの候補があります</div>
@@ -519,7 +562,13 @@
       if (eventResults.length === 0 && wasteResults.length === 0 && procResults.length === 0) {
         body = renderZeroResult(state.query);
       } else {
+        // 「◯件見つかりました」を結果本文の最上部（検索基準日ピッカーより前）に
+        // 置くことで、スマホでキーボードを閉じてスクロールした際に真っ先に見える
+        // 位置へ来るようにする（#search-feedback はscrollToSearchFeedbackの
+        // スクロール先アンカーも兼ねる）。件数集計以外の検索結果内容は変更しない。
+        const totalCount = eventResults.length + wasteResults.length + procResults.length;
         body = `
+          <div id="search-feedback" class="search-result-summary">「${escapeHtml(state.query)}」で${totalCount}件見つかりました</div>
           <div class="date-picker-row">
             検索基準日:
             <input type="date" id="as-of-date" value="${state.asOfDate}" />
@@ -612,25 +661,27 @@
     const input = document.getElementById("search-input");
     if (input) {
       input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          state.query = input.value;
-          state.detailWaste = null;
-          state.detailProc = null;
-          state.detailEvent = null;
-          render();
-        }
+        if (e.key === "Enter") confirmSearch(input.value);
       });
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
+      // <input type="search"> の "search" イベントは、モバイルの仮想キーボードが
+      // 出す Search/Go/完了 等のアクションキーで確定した際にも発火する（keydown
+      // Enterが飛ばない実装のIME/ブラウザ組み合わせがあるため、確定手段を1文字
+      // ごとの入力とは無関係に増やすだけで、検索トリガーの条件自体は変えない）。
+      input.addEventListener("search", () => confirmSearch(input.value));
+      if (pendingMobileSearchBlur) {
+        // 確定直後の1回だけ：キーボードを閉じて結果へスクロールする。以降の
+        // 通常のrender()（他ビューへの遷移等）では下のelse分岐の再フォーカス
+        // に戻り、PCの「Enter後も入力し続けられる」挙動は変えない。
+        pendingMobileSearchBlur = false;
+        input.blur();
+        scrollToSearchFeedback();
+      } else {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
     }
     const btn = document.getElementById("search-btn");
-    if (btn) btn.addEventListener("click", () => {
-      state.query = input.value;
-      state.detailWaste = null;
-      state.detailProc = null;
-      state.detailEvent = null;
-      render();
-    });
+    if (btn) btn.addEventListener("click", () => confirmSearch(input.value));
 
     document.querySelectorAll("[data-nav]").forEach((el) =>
       el.addEventListener("click", () => {

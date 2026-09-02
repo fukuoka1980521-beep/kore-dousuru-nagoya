@@ -163,6 +163,16 @@ main { padding: 8px 16px 24px; }
 .date-picker-row { display:flex; align-items:center; gap:8px; font-size: 12px; color: var(--text-sub); margin: 4px 4px 0; }
 .date-picker-row input { font-size: 12px; }
 
+.search-result-summary {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  background: #eef7f1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 4px 8px;
+}
+
 .category-chip-row { display: flex; gap: 8px; overflow-x: auto; padding: 10px 4px 4px; }
 .category-chip-row button {
   flex: 0 0 auto;
@@ -382,6 +392,13 @@ footer.app-footer button .icon { font-size: 20px; }
   line-height: 1.6;
 }
 .office-result-unknown p, .office-result-split p { margin: 0 0 6px; }
+
+/* スマホでの検索UX限定修正: 検索欄にフォーカス中（＝ソフトウェアキーボード表示中の
+   可能性が高い間）だけ、免責バナーを一時的に隠して縦方向の余白を検索結果側へ譲る。
+   899px以下のみに閉じているためPC表示（900px以上）は一切変更されない。 */
+@media (max-width: 899px) {
+  .app-shell:focus-within .notice-banner { display: none; }
+}
 
 /* Desktop: the mobile-first shell stays intact below this width, but on a
    PC viewport a fixed 480px column reads as an oversized empty margin.
