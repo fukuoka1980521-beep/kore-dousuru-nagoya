@@ -101,6 +101,35 @@
     });
   }
 
+  // 「小型家電（回収ボックス）／粗大ごみ（サイズによる）」のように、複数の分別区分が
+  // 条件（サイズ等）で分かれる品目は、category フィールド自体に「／」区切りで両方の
+  // 区分を詰め込んで表現している（データは正しい・削除しない）。だが一覧のカテゴリ
+  // バッジや「カテゴリから探す」チップ、結論文の主語としてそのまま出すと、1個の
+  // 区分名であるかのように誤読される・チップが読めない長さになる・文法が壊れる。
+  // 条件による分岐の詳細は conditions/size_rule/how_to_dispose に既に正しく書かれて
+  // いるので、ここでは「複合区分である」ことだけ分かる短い表示に留め、詳細は詳細画面
+  // に譲る（情報の削除ではなく、表示先を分けるだけ）。
+  function isCompoundCategory(category) {
+    return typeof category === "string" && category.includes("／");
+  }
+
+  function categoryLabelForList(category) {
+    return isCompoundCategory(category) ? "条件により区分が異なります（詳細を確認）" : category;
+  }
+
+  // 「カテゴリから探す」導線用の候補一覧。複合区分（isCompoundCategory）は単独の
+  // カテゴリとして機能しない（クリックしても実質1品目にしか絞り込めない・チップが
+  // 折り返さず読めない）ため除外し、実在する単純な区分名だけを、件数の多い順で返す。
+  // 除外した品目自体は検索・一覧（すべて表示）からは引き続き参照でき、情報は消えない。
+  function browsableCategories(items) {
+    const counts = new Map();
+    for (const it of items) {
+      if (isCompoundCategory(it.category)) continue;
+      counts.set(it.category, (counts.get(it.category) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
+  }
+
   function statusBadge(status) {
     const cls = status === "CONFIRMED_OFFICIAL" ? "confirmed" : status === "PARTIAL" ? "partial" : "unconfirmed";
     const label = status === "CONFIRMED_OFFICIAL" ? "公式確認済" : status === "PARTIAL" ? "一部要確認" : "要確認";
@@ -171,7 +200,7 @@
     return `
       <div class="result-item" data-waste="${it.item_id}">
         <div class="name">${escapeHtml(it.display_name)} ${statusBadge(it.status)}</div>
-        <div class="category">${escapeHtml(it.category)}</div>
+        <div class="category">${escapeHtml(categoryLabelForList(it.category))}</div>
       </div>
     `;
   }
@@ -200,7 +229,7 @@
     // shown as an already-decided answer.
     const suggestions = suggestSimilar(query, state.wasteItemsAll, 5);
     const eventSuggestions = suggestSimilarLifeEvents(query, state.lifeEvents, 3);
-    const categories = [...new Set(state.wasteItemsAll.map((i) => i.category))].slice(0, 10);
+    const categories = browsableCategories(state.wasteItemsAll).slice(0, 10);
     const feedbackUrl = buildFeedbackMailto(query);
     return `
       <div class="zero-result">
@@ -229,7 +258,7 @@
                     (s) => `
                   <button class="fuzzy-candidate" data-waste="${s.item_id}">
                     <span class="name">${escapeHtml(s.display_name)}</span>
-                    <span class="category">${escapeHtml(s.category)}</span>
+                    <span class="category">${escapeHtml(categoryLabelForList(s.category))}</span>
                   </button>`
                   )
                   .join("")}
@@ -304,7 +333,7 @@
             <span class="freshness-policy-note">（名古屋市公式の基準ではなく、本サービス内部の運用方針による表示です）</span>
           </div>
           <dl>
-            <div class="row"><dt>カテゴリ</dt><dd>${escapeHtml(it.category)}</dd></div>
+            <div class="row"><dt>カテゴリ</dt><dd>${escapeHtml(categoryLabelForList(it.category))}</dd></div>
             <div class="row"><dt>公式情報</dt><dd><a class="official-link" href="${it.official_url}" target="_blank" rel="noopener">${escapeHtml(it.official_page_title)}</a></dd></div>
             <div class="row"><dt>問い合わせ</dt><dd>${escapeHtml(it.department)}<div class="phone-block" style="margin-top:6px;">${it.phone ? `<a href="tel:${it.phone.replace(/[^0-9]/g, "")}">${escapeHtml(it.phone)}</a>` : "未確認"}</div></dd></div>
             <div class="row"><dt>最終確認日</dt><dd>${escapeHtml(it.source_checked_at)}</dd></div>
@@ -319,7 +348,11 @@
       <div class="card">
         <h2>${escapeHtml(it.display_name)} ${statusBadge(it.status)}</h2>
         ${freshnessBannerHtml({ riskLevel, freshness })}
-        <div class="conclusion"><strong>${escapeHtml(it.category)}</strong>として出してください。${escapeHtml(it.conditions || "")}</div>
+        <div class="conclusion">${
+          isCompoundCategory(it.category)
+            ? `出し方は条件によって分かれます。下記の内容をよくご確認ください。${escapeHtml(it.conditions || "")}`
+            : `<strong>${escapeHtml(it.category)}</strong>として出してください。${escapeHtml(it.conditions || "")}`
+        }</div>
         <dl>
           <div class="row"><dt>出し方</dt><dd>${escapeHtml(it.how_to_dispose)}</dd></div>
           <div class="row"><dt>収集/持込み</dt><dd>${escapeHtml(it.collection_or_dropoff)}</dd></div>
@@ -328,7 +361,7 @@
           ${it.danger_notes && it.danger_notes !== "該当なし" ? `<div class="row"><dt>注意事項</dt><dd class="danger-notes">⚠️ ${escapeHtml(it.danger_notes)}</dd></div>` : ""}
           ${it.battery_notes && it.battery_notes !== "該当なし" ? `<div class="row"><dt>電池関連</dt><dd>${escapeHtml(it.battery_notes)}</dd></div>` : ""}
           <div class="row"><dt>サイズ基準</dt><dd>${escapeHtml(it.size_rule)}<br /><span style="color:var(--text-sub);font-size:12px;">${escapeHtml(it.effective_rule)}</span></dd></div>
-          <div class="row"><dt>適用期間</dt><dd>${escapeHtml(it.valid_from || "")} 〜 ${escapeHtml(it.valid_to || "現在も継続")}（${escapeHtml(it.rule_version)}）</dd></div>
+          ${versionCount > 1 ? `<div class="row"><dt>適用期間</dt><dd>${escapeHtml(it.valid_from || "")} 〜 ${escapeHtml(it.valid_to || "現在も継続")}</dd></div>` : ""}
           <div class="row"><dt>担当</dt><dd>${escapeHtml(it.department)}<div class="phone-block" style="margin-top:6px;">${it.phone ? `<a href="tel:${it.phone.replace(/[^0-9]/g, "")}">${escapeHtml(it.phone)}</a>` : "未確認"}</div></dd></div>
           <div class="row"><dt>公式情報</dt><dd><a class="official-link" href="${it.official_url}" target="_blank" rel="noopener">${escapeHtml(it.official_page_title)}</a></dd></div>
           <div class="row"><dt>確認日</dt><dd>${escapeHtml(it.source_checked_at)}</dd></div>
@@ -583,11 +616,12 @@
       const filtered = state.categoryFilter
         ? activeItems.filter((i) => i.category === state.categoryFilter)
         : activeItems;
-      const allCategories = [...new Set(state.wasteItemsAll.map((i) => i.category))];
+      const allCategories = browsableCategories(state.wasteItemsAll);
       body = `
         <div class="date-picker-row">
           検索基準日:
           <input type="date" id="as-of-date" value="${state.asOfDate}" />
+          <span>（粗大ごみ2026年10月ルール変更の境界確認用）</span>
         </div>
         <div class="category-chip-row">
           <button data-category="" class="${!state.categoryFilter ? "active" : ""}">すべて</button>
@@ -641,7 +675,7 @@
               </div>`
             : ""
         }
-        <div class="section-title">よく検索される品目</div>
+        <div class="section-title">特に注意が必要な品目</div>
         <div class="result-list">${activeItems.slice(0, 5).map(wasteResultItem).join("")}</div>
       `;
     }
