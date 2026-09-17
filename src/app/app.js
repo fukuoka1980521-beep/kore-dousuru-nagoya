@@ -230,7 +230,7 @@
     const suggestions = suggestSimilar(query, state.wasteItemsAll, 5);
     const eventSuggestions = suggestSimilarLifeEvents(query, state.lifeEvents, 3);
     const categories = browsableCategories(state.wasteItemsAll).slice(0, 10);
-    const feedbackUrl = buildFeedbackMailto(query);
+    const feedbackUrl = buildFeedbackMailto(query, `${state.config.app_title}${state.config.display_name_full}`);
     return `
       <div class="zero-result">
         <div id="search-feedback">「${escapeHtml(query)}」に一致する結果が見つかりませんでした。</div>
@@ -299,7 +299,7 @@
     return `
       <div class="freshness-banner">
         この情報は再確認期限を過ぎています。最新情報は公式ページでもご確認ください。
-        <span class="freshness-policy-note">（最終確認日を基準にした本サービス内部の運用方針による表示です。名古屋市公式の基準ではありません）</span>
+        <span class="freshness-policy-note">（最終確認日を基準にした本サービス内部の運用方針による表示です。${escapeHtml(state.config.display_name)}公式の基準ではありません）</span>
       </div>
     `;
   }
@@ -330,7 +330,7 @@
           <div class="stale-highrisk-banner">
             <strong>⚠️ 再確認が必要な情報です</strong>
             <div>この品目は危険物等に関わるため、内部の運用方針上、最終確認から一定期間が過ぎた情報を詳細表示せずお伝えしています。最新の出し方は必ず公式ページでご確認ください。</div>
-            <span class="freshness-policy-note">（名古屋市公式の基準ではなく、本サービス内部の運用方針による表示です）</span>
+            <span class="freshness-policy-note">（${escapeHtml(state.config.display_name)}公式の基準ではなく、本サービス内部の運用方針による表示です）</span>
           </div>
           <dl>
             <div class="row"><dt>カテゴリ</dt><dd>${escapeHtml(categoryLabelForList(it.category))}</dd></div>
@@ -545,7 +545,7 @@
       })
       .join("");
     const wasteLink = e.show_waste_link
-      ? `<button type="button" class="event-waste-link" data-nav="gomi">名古屋市のごみ・資源の出し方を確認</button>`
+      ? `<button type="button" class="event-waste-link" data-nav="gomi">${escapeHtml(state.config.display_name)}のごみ・資源の出し方を確認</button>`
       : "";
     return `
       <a class="back-link" data-back="1">← 検索結果に戻る</a>
