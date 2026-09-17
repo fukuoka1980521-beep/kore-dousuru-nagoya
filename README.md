@@ -12,3 +12,9 @@
 このリポジトリは GitHub Pages 公開用の静的サイトのみを含みます。
 
 著作権・再利用条件については [COPYRIGHT_NOTICE.md](./COPYRIGHT_NOTICE.md) を参照してください。
+
+---
+
+**このリポジトリのソースファイル（`municipalities/`, `src/`, `index.html`）は開発用リポジトリからの
+生成物です。直接編集しないでください。** 変更は開発用リポジトリ側で行い、`check_public_sync.js`
+（開発用リポジトリの `scripts/` にあります）で差分確認のうえ反映します。
