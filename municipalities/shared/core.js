@@ -138,9 +138,18 @@ function suggestSimilar(query, items, limit = 6) {
 const REVIEW_INTERVAL_DAYS = Object.freeze({ HIGH: 30, MEDIUM: 90, LOW: 365 });
 const HIGH_RISK_CATEGORIES = new Set(["電池類", "発火性危険物"]);
 
+// See src/lib/freshness.js for why this isn't a plain Set.has() or substring test.
+function isHighRiskCategory(category) {
+  if (!category) return false;
+  for (const riskCategory of HIGH_RISK_CATEGORIES) {
+    if (category === riskCategory || category.startsWith(`${riskCategory}（`)) return true;
+  }
+  return false;
+}
+
 function computeRiskLevel(item, { isDateDependent = false } = {}) {
   if (item?.danger_notes && item.danger_notes !== "該当なし") return "HIGH";
-  if (HIGH_RISK_CATEGORIES.has(item?.category)) return "HIGH";
+  if (isHighRiskCategory(item?.category)) return "HIGH";
   if (isDateDependent) return "HIGH";
   if (item?.application_required || item?.category === "粗大ごみ") return "MEDIUM";
   return "LOW";
@@ -270,8 +279,8 @@ function resolveTownOffice(offices, branchJurisdiction, ward, town) {
 
 const FEEDBACK_OPERATOR_EMAIL = "koide@imagine-seek.co.jp";
 
-function buildFeedbackMailto(query, operatorEmail = FEEDBACK_OPERATOR_EMAIL) {
-  const subject = `[これどうする？名古屋市版] 検索改善候補: ${query}`;
+function buildFeedbackMailto(query, serviceLabel = "これどうする？", operatorEmail = FEEDBACK_OPERATOR_EMAIL) {
+  const subject = `[${serviceLabel}] 検索改善候補: ${query}`;
   const body = [
     "検索してヒットしなかった語句:",
     query,
