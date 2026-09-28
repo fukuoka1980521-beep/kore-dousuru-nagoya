@@ -237,11 +237,16 @@ document.getElementById('lifeGrid').innerHTML = D.life.map(lifeCard).join('');
 document.getElementById('changeGrid').innerHTML = D.changes.map(changeCard).join('');
 document.getElementById('sourceLinks').innerHTML = Object.values(D.sources).map(s=>`<p><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a> <span class="small">確認 ${esc(s.verifiedAt)}</span></p>`).join('');
 
-document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{
+function openPanel(id,scroll=true){
+  const btn=[...document.querySelectorAll('.nav button')].find(b=>b.dataset.panel===id);
+  const panel=document.getElementById(id); if(!btn||!panel)return;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b===btn));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===btn.dataset.panel));
-  document.getElementById(btn.dataset.panel).scrollIntoView({block:'start'});
-}));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id));
+  if(scroll) panel.scrollIntoView({block:'start'});
+}
+document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{location.hash=btn.dataset.panel;openPanel(btn.dataset.panel,true)}));
+if(location.hash&&document.getElementById(location.hash.slice(1))) openPanel(location.hash.slice(1),false);
+window.addEventListener('hashchange',()=>openPanel(location.hash.slice(1),false));
 
 document.getElementById('area').addEventListener('change', e=>{
   const s=D.schedules[e.target.value], el=document.getElementById('days');
