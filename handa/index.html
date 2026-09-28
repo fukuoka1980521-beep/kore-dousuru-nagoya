@@ -21,6 +21,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .hero h1{font-size:clamp(30px,6vw,50px);margin:0 0 8px;letter-spacing:-.03em}
 .hero p{margin:0;max-width:720px}
 .verified{display:inline-block;margin-top:14px;background:rgba(255,255,255,.16);padding:7px 10px;border-radius:999px;font-size:14px}
+.heroAssist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px;max-width:820px}
+.heroAssistBtn{appearance:none;text-align:left;border:1px solid rgba(255,255,255,.44);background:rgba(255,255,255,.13);color:white;border-radius:14px;padding:13px 15px;cursor:pointer;min-height:88px}
+.heroAssistBtn:hover{background:rgba(255,255,255,.2)}
+.heroAssistBtn strong{display:block;font-size:17px;line-height:1.4;margin-bottom:3px}
+.heroAssistBtn span{display:block;color:#e8f7f3;font-size:14px;line-height:1.45}
+.heroAssistBtn .cta{margin-top:7px;color:white;font-weight:800}
 .notice{margin:16px 0;padding:14px 16px;border-radius:14px;background:var(--warnbg);border:1px solid #f1cf8c}
 .notice[hidden]{display:none}
 .searchbox{background:var(--card);padding:20px;border-radius:18px;margin:18px 0;box-shadow:0 6px 22px rgba(20,30,50,.06)}
@@ -68,6 +74,8 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
 @media(max-width:760px){
   .wrap{padding:12px}
   .hero{padding:22px 18px;border-radius:18px}
+  .heroAssist{grid-template-columns:1fr}
+  .heroAssistBtn{min-height:76px}
   .nav{grid-template-columns:repeat(2,1fr)}
   .days{grid-template-columns:1fr}
   .searchrow .btn{width:100%}
@@ -82,8 +90,20 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
   <header class="hero">
     <div class="small" style="color:#dff4ef">半田市の暮らしを「次に何をする？」まで</div>
     <h1>どうする半田</h1>
-    <p>ごみの分け方、引っ越し、出生・子育て、証明書、保険、相談先に加え、<strong>補助金・助成金をやりたいことから探す申請アシスト</strong>や、<strong>記入済み申請書・添付書類のPDF／写真による提出前チェック</strong>もできます。制度名を知らなくても、次に何をすればよいかまで確認できます。</p>
+    <p>ごみ・引っ越し・子育てなどの暮らし情報に加え、<strong>補助金・助成金探し</strong>と<strong>申請書類の提出前チェック</strong>までできます。</p>
     <span class="verified">公式情報確認 2026-09-28</span>
+    <div class="heroAssist" aria-label="申請支援でできること">
+      <button class="heroAssistBtn" type="button" data-assist-target="subsidyAssistBox">
+        <strong>補助金・助成金を探す</strong>
+        <span>やりたいことを自由入力すると、半田市の公式制度から候補を提示します。</span>
+        <span class="cta">使ってみる →</span>
+      </button>
+      <button class="heroAssistBtn" type="button" data-assist-target="docAssistBox">
+        <strong>PDF・写真で申請書をチェック</strong>
+        <span>記入済み申請書や添付資料を読み取り、書式・記入漏れ・添付不足の候補を確認します。</span>
+        <span class="cta">提出前にチェック →</span>
+      </button>
+    </div>
   </header>
 
   <div id="stale" class="notice" hidden><b>最新情報の確認をおすすめします。</b><br>公式情報の確認日から14日を超えています。手続・料金・収集方法は、申込みや排出前に公式ページで再確認してください。</div>
@@ -110,7 +130,7 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
     <button data-panel="procedures">手続き</button>
     <button data-panel="life">相談・暮らし</button>
     <button data-panel="changes">変更予定</button>
-    <button data-panel="assist">申請アシスト</button>
+    <button data-panel="assist">補助金・申請チェック</button>
     <button data-panel="sources">公式情報</button>
   </nav>
 
@@ -148,7 +168,7 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
 
     <section id="assist" class="panel assist">
       <div class="sectionhead"><div><h2>申請アシスト</h2><div class="small">自由入力で候補を探す／申請書を提出前に機械チェック</div></div></div>
-      <div class="assistBox">
+      <div class="assistBox" id="subsidyAssistBox">
         <h3>やりたいことから補助金・助成金候補を探す</h3>
         <p>制度名が分からなくても構いません。「半田で店を改装したい」「太陽光を事業所に入れたい」など、そのまま入力してください。</p>
         <label for="subsidyQ"><b>何をしたいですか？</b></label>
@@ -157,7 +177,7 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
         <div id="subsidyResults" class="resultBlock" aria-live="polite"></div>
         <p class="small">候補表示は採択・対象確定ではありません。公式情報に登録された制度だけを候補として出し、分からない条件は「要確認」のまま残します。</p>
       </div>
-      <div class="assistBox">
+      <div class="assistBox" id="docAssistBox">
         <h3>申請書・添付書類を提出前にチェック</h3>
         <p><b>実証対象：</b>半田市地域脱炭素移行・再エネ推進重点対策加速化事業補助金「様式第1号の1（事業所設置型）」</p>
         <p>写真・画像・PDFを選ぶと、書式名、記入値の検出、必要添付書類が見当たるかを機械的に確認します。</p>
@@ -247,6 +267,17 @@ function openPanel(id,scroll=true){
 document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{location.hash=btn.dataset.panel;openPanel(btn.dataset.panel,true)}));
 if(location.hash&&document.getElementById(location.hash.slice(1))) openPanel(location.hash.slice(1),false);
 window.addEventListener('hashchange',()=>openPanel(location.hash.slice(1),false));
+function openAssistTarget(targetId){
+  history.replaceState(null,'','#assist');
+  openPanel('assist',false);
+  requestAnimationFrame(()=>{
+    const target=document.getElementById(targetId)||document.getElementById('assist');
+    target.scrollIntoView({behavior:'smooth',block:'start'});
+    const focusable=target.querySelector('textarea,input,button');
+    if(focusable) setTimeout(()=>focusable.focus({preventScroll:true}),350);
+  });
+}
+document.querySelectorAll('[data-assist-target]').forEach(btn=>btn.addEventListener('click',()=>openAssistTarget(btn.dataset.assistTarget)));
 
 document.getElementById('area').addEventListener('change', e=>{
   const s=D.schedules[e.target.value], el=document.getElementById('days');
