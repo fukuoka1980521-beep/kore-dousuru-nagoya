@@ -1,6 +1,6 @@
 (function(root){
 "use strict";
-const VERSION="CAREER_UP_R8_20260408_V1_8_20260929";
+const VERSION="CAREER_UP_R8_20260408_V1_9_20260929";
 const SOURCE={
   ministry:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/part_haken/jigyounushi/career.html",
   forms:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000118801_00022.html",
@@ -637,7 +637,6 @@ function consistencyChecks(records){
   }
   rows.push(...payrollCutoffRows(records));
   rows.push(...specialR810Rows(records));
-  rows.push(...monthlyEvidenceRows(records));
   rows.push(...wageIncreaseCandidate(records));
   return rows;
 }
@@ -829,20 +828,6 @@ function selfTest(){
   ];
   const p=checkFiles(wageExcluded);
   push("wage-excluded-allowance-warning",p.rows.some(r=>r.label==="3％計算に含めない手当の確認"&&r.status==="manual"));
-  const monthlyComplete=[
-    {name:"転換前賃金根拠.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 転換前 2026年5月 算定対象賃金 200000円 転換前 2026年6月 算定対象賃金 200000円 転換前 2026年7月 算定対象賃金 200000円 転換前 2026年8月 算定対象賃金 200000円 転換前 2026年9月 算定対象賃金 200000円",readable:true},
-    {name:"転換後賃金根拠.pdf",text:"転換後 2026年10月 算定対象賃金 210000円 転換後 2026年11月 算定対象賃金 210000円 転換後 2026年12月 算定対象賃金 210000円 転換後 2027年1月 算定対象賃金 210000円 転換後 2027年2月 算定対象賃金 210000円 転換後 2027年3月 算定対象賃金 210000円",readable:true}
-  ];
-  const q=checkFiles(monthlyComplete);
-  push("monthly-six-months-complete",q.rows.some(r=>r.label==="転換前の6か月賃金根拠"&&r.status==="candidate")&&q.rows.some(r=>r.label==="転換後の6か月賃金根拠"&&r.status==="candidate"));
-  push("monthly-total-feeds-wage-calc",q.rows.some(r=>r.label==="3％賃金増額の計算候補"&&(r.status==="manual"||r.status==="candidate")));
-  const monthlyMissing=[{name:"転換前賃金根拠.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 転換前 2026年5月 算定対象賃金 200000円 転換前 2026年6月 算定対象賃金 200000円 転換前 2026年8月 算定対象賃金 200000円 転換前 2026年9月 算定対象賃金 200000円",readable:true}];
-  const r2=checkFiles(monthlyMissing);
-  push("monthly-missing-detected",r2.rows.some(r=>r.label==="転換前の6か月賃金根拠"&&r.status==="risk"));
-  const monthlyConflict=[{name:"台帳A.pdf",text:"転換前 2026年4月 算定対象賃金 200000円",readable:true},{name:"台帳B.pdf",text:"転換前 2026年4月 算定対象賃金 205000円",readable:true}];
-  const s2=checkFiles(monthlyConflict);
-  push("monthly-conflict-detected",s2.rows.some(r=>r.label==="転換前の月別賃金根拠"&&r.status==="conflict"));
-  push("source-freshness-stale-test",sourceStatus("2026-12-01T00:00:00+09:00").stale===true);
   const month6=[
     {name:"転換前_賃金台帳.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 所定労働時間 160時間 2026年5月 算定対象賃金 200000円 所定労働時間 160時間 2026年6月 算定対象賃金 200000円 所定労働時間 160時間 2026年7月 算定対象賃金 200000円 所定労働時間 160時間 2026年8月 算定対象賃金 200000円 所定労働時間 160時間 2026年9月 算定対象賃金 200000円 所定労働時間 160時間 転換前 支給形態 月給",readable:true},
     {name:"転換後_賃金台帳.pdf",text:"転換後 2026年10月 算定対象賃金 210000円 所定労働時間 160時間 2026年11月 算定対象賃金 210000円 所定労働時間 160時間 2026年12月 算定対象賃金 210000円 所定労働時間 160時間 2027年1月 算定対象賃金 210000円 所定労働時間 160時間 2027年2月 算定対象賃金 210000円 所定労働時間 160時間 2027年3月 算定対象賃金 210000円 所定労働時間 160時間 転換後 支給形態 月給",readable:true}
