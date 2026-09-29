@@ -5,7 +5,7 @@ root=Path(__file__).resolve().parent
 idx=(root/"index.html").read_text(encoding="utf-8")
 js=(root/"career-r8.js").read_text(encoding="utf-8")
 checks={
- "career_version":"CAREER_UP_R8_20260408_V1_7_20260929" in js,
+ "career_version":"CAREER_UP_R8_20260408_V1_8_20260929" in js,
  "official_qa":"001729696.pdf" in js,
  "checklist":"001688027.pdf" in js,
  "monthly_audit":"monthlyWageAudit" in js,
@@ -19,6 +19,9 @@ checks={
  "clear":"docClearBtn" in idx,
  "next_action":"次にすること" in idx,
  "wage_copy":"3％賃金増額" in idx,
+ "partial_pdf":"PDF_PARTIAL" in idx and "PDFの未読ページあり" in js,
+ "provenance":"FORM RULE PACK" in idx and "解析対象ファイル" in idx,
+ "dependency_pin":"tesseract.js@5.1.1" in idx and "pdf.js/3.11.174" in idx,
 }
 bad=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(("PASS" if v else "FAIL"),k)
