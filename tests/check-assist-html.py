@@ -22,7 +22,7 @@ for p in FILES:
         print("INLINE_JS_FAIL",p)
         print(cp.stdout);print(cp.stderr)
         raise SystemExit(1)
-    required=["最大20ファイル","PDF保存","tesseract.js@5.1.1","pdf.js/3.11.174"]
+    required=["最大20ファイル","PDF保存","tesseract.js@5.1.1","pdf.js/3.11.174","career_up_regularization","契約社員を正社員にしたい"]
     for x in required:
         if x not in s:
             print("MARKER_FAIL",p,x);raise SystemExit(1)
