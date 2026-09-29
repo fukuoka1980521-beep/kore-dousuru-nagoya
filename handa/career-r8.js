@@ -1,11 +1,12 @@
 (function(root){
 "use strict";
-const VERSION="CAREER_UP_R8_20260408_V1_4_20260929";
+const VERSION="CAREER_UP_R8_20260408_V1_5_20260929";
 const SOURCE={
   ministry:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/part_haken/jigyounushi/career.html",
   forms:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000118801_00022.html",
   checklist:"https://www.mhlw.go.jp/content/11910500/001688027.pdf",
-  aichi:"https://jsite.mhlw.go.jp/aichi-roudoukyoku/hourei_seido_tetsuzuki/_121796/_120129/_120163/_120172.html"
+  aichi:"https://jsite.mhlw.go.jp/aichi-roudoukyoku/hourei_seido_tetsuzuki/_121796/_120129/_120163/_120172.html",
+  qa:"https://www.mhlw.go.jp/content/11910500/001729696.pdf"
 };
 function compact(s){return String(s||"").normalize("NFKC").replace(/[\s　]+/g,"");}
 function safeName(r){return String((r&&r.name)||"");}
@@ -230,6 +231,123 @@ function formatDateEntries(entries){
   return (entries||[]).map(x=>"「"+shortFile(x.record)+"」："+x.date).join(" ／ ");
 }
 
+
+function parseMoneyToken(v,unit){
+  const n=Number(String(v||"").replace(/,/g,""));
+  if(!Number.isFinite(n))return null;
+  return unit==="万円"?Math.round(n*10000):Math.round(n);
+}
+function findSideMoney(r,side){
+  const t=compact(safeText(r));
+  const label=side==="pre"?"(?:転換前|正社員転換前)":"(?:転換後|正社員転換後)";
+  const patterns=[
+    new RegExp(label+"(?:6か月|６か月)?(?:間)?(?:の)?(?:算定対象)?賃金(?:総額)?[:：]?([0-9,.]+)(万円|円)"),
+    new RegExp(label+"[:：]?(?:6か月|６か月)間の賃金[:：]?([0-9,.]+)(万円|円)")
+  ];
+  for(const re of patterns){
+    const m=t.match(re);
+    if(m){const amount=parseMoneyToken(m[1],m[2]);if(amount!=null)return {side,amount,record:safeName(r),quality:qualityOf(r)};}
+  }
+  return null;
+}
+function findSideHours(r,side){
+  const t=compact(safeText(r));
+  const label=side==="pre"?"(?:転換前|正社員転換前)":"(?:転換後|正社員転換後)";
+  const re=new RegExp(label+"(?:6か月|６か月)?(?:間)?(?:の)?(?:所定)?労働時間(?:総数)?[:：]?([0-9,.]+)(?:時間|h)");
+  const m=t.match(re);
+  if(!m)return null;
+  const hours=Number(m[1].replace(/,/g,""));
+  return Number.isFinite(hours)&&hours>0?{side,hours,record:safeName(r),quality:qualityOf(r)}:null;
+}
+function findPayForm(r,side){
+  const t=compact(safeText(r));
+  const label=side==="pre"?"(?:転換前|正社員転換前)":"(?:転換後|正社員転換後)";
+  const m=t.match(new RegExp(label+"[\\s\\S]{0,60}?(月給|時給|時間給|日給)"));
+  if(!m)return null;
+  const form=m[1]==="時間給"?"時給":m[1];
+  return {side,form,record:safeName(r),quality:qualityOf(r)};
+}
+function wageCalcFacts(records){
+  const formal=readableRecords(records).filter(r=>qualityOf(r)==="formal");
+  const preMoney=[],postMoney=[],preHours=[],postHours=[],preForms=[],postForms=[];
+  formal.forEach(r=>{
+    const a=findSideMoney(r,"pre"),b=findSideMoney(r,"post"),c=findSideHours(r,"pre"),d=findSideHours(r,"post"),e=findPayForm(r,"pre"),f=findPayForm(r,"post");
+    if(a)preMoney.push(a);if(b)postMoney.push(b);if(c)preHours.push(c);if(d)postHours.push(d);if(e)preForms.push(e);if(f)postForms.push(f);
+  });
+  return {preMoney,postMoney,preHours,postHours,preForms,postForms};
+}
+function uniqueNumericFacts(facts,key){return [...new Set((facts||[]).map(x=>x[key]))];}
+function uniqueStringFacts(facts,key){return [...new Set((facts||[]).map(x=>x[key]))];}
+function moneyFmt(n){return Number(n).toLocaleString("ja-JP")+"円";}
+function pctFmt(n){return Number(n).toFixed(2).replace(/\.00$/,"")+"％";}
+function wageSourceLines(facts,key,fmt){
+  return (facts||[]).map(x=>"「"+shortFile(x.record)+"」："+fmt(x[key])).join(" ／ ");
+}
+function excludedAllowanceWarnings(records){
+  const defs=[
+    ["通勤手当","実費補填の通勤手当"],
+    ["住宅手当","家賃等を補填する住宅手当"],
+    ["燃料手当","燃料手当"],
+    ["工具手当","工具手当"],
+    ["休日手当","休日手当"],
+    ["時間外労働手当","時間外労働手当"],
+    ["固定残業","固定残業代"],
+    ["歩合給","歩合給"],
+    ["精皆勤手当","精皆勤手当"],
+    ["食事手当","食事手当"],
+    ["賞与","賞与"]
+  ];
+  const hits=[];
+  readableRecords(records).forEach(r=>{
+    const t=compact(safeText(r));
+    defs.forEach(d=>{if(t.includes(d[0]))hits.push({term:d[1],record:safeName(r)});});
+  });
+  const seen=new Set(),out=[];
+  hits.forEach(x=>{const k=x.term+"|"+x.record;if(!seen.has(k)){seen.add(k);out.push(x);}});
+  return out;
+}
+function wageIncreaseCandidate(records){
+  const f=wageCalcFacts(records),rows=[];
+  const preVals=uniqueNumericFacts(f.preMoney,"amount"),postVals=uniqueNumericFacts(f.postMoney,"amount");
+  if(preVals.length>1)rows.push(consistencyRow("conflict","転換前6か月賃金総額","正式資料で転換前の算定対象賃金総額候補が一致しません。"+wageSourceLines(f.preMoney,"amount",moneyFmt)+"。"));
+  if(postVals.length>1)rows.push(consistencyRow("conflict","転換後6か月賃金総額","正式資料で転換後の算定対象賃金総額候補が一致しません。"+wageSourceLines(f.postMoney,"amount",moneyFmt)+"。"));
+  const excluded=excludedAllowanceWarnings(records);
+  if(excluded.length){
+    rows.push(consistencyRow("manual","3％計算に含めない手当の確認","算定除外候補の語を検出しました："+excluded.map(x=>"「"+shortFile(x.record)+"」の"+x.term).join(" ／ ")+"。これらが算定対象賃金総額に混入していないか原本で確認してください。"));
+  }
+  if(preVals.length!==1||postVals.length!==1){
+    rows.push(consistencyRow("unknown","3％賃金増額の計算候補","転換前後それぞれの6か月算定対象賃金総額を一意に読み取れないため、計算候補を出しません。"));
+    return rows;
+  }
+  const pre=preVals[0],post=postVals[0];
+  if(pre<=0){rows.push(consistencyRow("unknown","3％賃金増額の計算候補","転換前賃金総額が0円以下のため計算できません。"));return rows;}
+  const preForms=uniqueStringFacts(f.preForms,"form"),postForms=uniqueStringFacts(f.postForms,"form");
+  const preH=uniqueNumericFacts(f.preHours,"hours"),postH=uniqueNumericFacts(f.postHours,"hours");
+  const detailBase="転換前："+wageSourceLines(f.preMoney,"amount",moneyFmt)+" ／ 転換後："+wageSourceLines(f.postMoney,"amount",moneyFmt);
+  if(preForms.length===1&&postForms.length===1&&preForms[0]!==postForms[0]){
+    if(preH.length!==1||postH.length!==1){
+      rows.push(consistencyRow("manual","3％賃金増額の計算候補",detailBase+"。支給形態が "+preForms[0]+" → "+postForms[0]+" と変わるため、転換前後それぞれの6か月所定労働時間が必要です。時間を一意に読み取れないので自動計算しません。"));
+      return rows;
+    }
+    const preHourly=Math.ceil(pre/preH[0]),postHourly=Math.ceil(post/postH[0]);
+    const pct=(postHourly-preHourly)/preHourly*100;
+    const status=pct>=3?"candidate":"risk";
+    rows.push(consistencyRow(status,"3％賃金増額の計算候補","厚労省Q&Aの支給形態変更時の考え方に沿う候補計算です。転換前："+moneyFmt(pre)+" ÷ "+preH[0].toLocaleString("ja-JP")+"時間 → "+moneyFmt(preHourly)+"/時、転換後："+moneyFmt(post)+" ÷ "+postH[0].toLocaleString("ja-JP")+"時間 → "+moneyFmt(postHourly)+"/時。候補増額率 "+pctFmt(pct)+(pct>=3?"（3％以上）":"（3％未満）")+"。円未満は切り上げています。最終要件充足は確定しません。"));
+    return rows;
+  }
+  if(preForms.length===1&&postForms.length===1&&preForms[0]==="月給"&&postForms[0]==="月給"){
+    if(preH.length===1&&postH.length===1&&preH[0]===postH[0]){
+      const pct=(post-pre)/pre*100;
+      rows.push(consistencyRow(pct>=3?"candidate":"risk","3％賃金増額の計算候補","転換前後とも月給で、読み取れた6か月所定労働時間も "+preH[0].toLocaleString("ja-JP")+"時間で一致しています。("+moneyFmt(post)+" - "+moneyFmt(pre)+") ÷ "+moneyFmt(pre)+" ×100 = "+pctFmt(pct)+(pct>=3?"（3％以上）":"（3％未満）")+"。最終要件充足は確定しません。"));
+      return rows;
+    }
+    rows.push(consistencyRow("manual","3％賃金増額の計算候補",detailBase+"。転換前後とも月給ですが、所定労働時間が同じことを安全に確認できないため、6か月賃金総額だけでは自動計算しません。"));
+    return rows;
+  }
+  rows.push(consistencyRow("manual","3％賃金増額の計算候補",detailBase+"。支給形態または所定労働時間の条件を安全に特定できないため、自動計算せず厚労省の賃金増額確認方法で確認してください。"));
+  return rows;
+}
+
 function consistencyChecks(records){
   const rows=[];
   rows.push(fieldConsistency("対象労働者名",personFacts(records)));
@@ -300,6 +418,7 @@ function consistencyChecks(records){
   }else{
     rows.push(consistencyRow("unknown","転換前後の賃金比較","転換前後の比較に必要な賃金値を正式資料から十分に抽出できません。"));
   }
+  rows.push(...wageIncreaseCandidate(records));
   return rows;
 }
 
@@ -459,7 +578,27 @@ function selfTest(){
   ];
   const l=checkFiles(identityMatch);
   push("identity-fields-match",l.rows.some(r=>r.label==="対象労働者名の一致"&&r.status==="match")&&l.rows.some(r=>r.label==="事業所・会社名の一致"&&r.status==="match"));
+  const wageMonthly=[
+    {name:"賃金増額確認資料.pdf",text:"転換前 支給形態 月給 転換前6か月賃金総額 1200000円 転換前6か月所定労働時間 960時間 転換後 支給形態 月給 転換後6か月賃金総額 1260000円 転換後6か月所定労働時間 960時間",readable:true}
+  ];
+  const m=checkFiles(wageMonthly);
+  push("wage-monthly-candidate",m.rows.some(r=>r.label==="3％賃金増額の計算候補"&&r.status==="candidate"&&r.detail.indexOf("5％")>=0));
+  const wageChanged=[
+    {name:"賃金増額確認資料.pdf",text:"転換前 支給形態 時給 転換前6か月賃金総額 1000000円 転換前6か月所定労働時間 1000時間 転換後 支給形態 月給 転換後6か月賃金総額 1050000円 転換後6か月所定労働時間 1000時間",readable:true}
+  ];
+  const n=checkFiles(wageChanged);
+  push("wage-form-change-hourly-candidate",n.rows.some(r=>r.label==="3％賃金増額の計算候補"&&r.status==="candidate"&&r.detail.indexOf("5％")>=0));
+  const wageLow=[
+    {name:"賃金増額確認資料.pdf",text:"転換前 支給形態 月給 転換前6か月賃金総額 1200000円 転換前6か月所定労働時間 960時間 転換後 支給形態 月給 転換後6か月賃金総額 1220000円 転換後6か月所定労働時間 960時間",readable:true}
+  ];
+  const o=checkFiles(wageLow);
+  push("wage-below-3-risk",o.rows.some(r=>r.label==="3％賃金増額の計算候補"&&r.status==="risk"));
+  const wageExcluded=[
+    {name:"賃金台帳.pdf",text:"転換前6か月賃金総額 1200000円 通勤手当 30000円 賞与 50000円 転換後6か月賃金総額 1300000円",readable:true}
+  ];
+  const p=checkFiles(wageExcluded);
+  push("wage-excluded-allowance-warning",p.rows.some(r=>r.label==="3％計算に含めない手当の確認"&&r.status==="manual"));
   return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
 }
-root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,selfTest};
+root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,wageIncreaseCandidate,selfTest};
 })(window);
