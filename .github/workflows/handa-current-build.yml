@@ -1,0 +1,30 @@
+name: Build Handa CURRENT
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "handa/**"
+      - ".github/workflows/handa-current-build.yml"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python handa/verify.py
+      - name: Build CURRENT zip
+        run: |
+          rm -rf dist-handa
+          mkdir -p dist-handa
+          cp -R handa/. dist-handa/
+          rm -f dist-handa/.DS_Store
+          cd dist-handa
+          zip -qr ../dosuru-handa-CURRENT.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dosuru-handa-CURRENT
+          path: dosuru-handa-CURRENT.zip
+          if-no-files-found: error
