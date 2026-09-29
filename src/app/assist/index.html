@@ -58,13 +58,33 @@ function renderRows(rows){
 function renderCareerPack(records){
   var r=CareerUpR8Pack.checkFiles(records);
   var stageLabel=r.stage==='PREPARATION'?'申請前の準備段階':(r.stage==='APPLICATION'?'支給申請段階':'段階は要確認');
+  var actionRows=r.rows.filter(function(x){return ['negative','draft','missing','unknown'].indexOf(x.status)>=0&&x.status!=='future'}).slice(0,5);
+  var manualCount=r.rows.filter(function(x){return x.status==='manual'}).length;
+  var futureRows=r.rows.filter(function(x){return x.status==='future'});
   var html='<div class="notice"><b>'+esc(r.course)+'：正式FORM RULE PACK</b><br>'+esc(r.notice)+'<br><b>現在の書類セット：</b>'+esc(stageLabel)+' ／ '+esc(r.phase)+'</div>';
-  if(r.stage==='PREPARATION')html+='<div class="notice"><b>今見るべきもの</b><br>支給申請書一式を「不足」とは扱わず、まず受理済みキャリアアップ計画、転換前の就業規則等、雇用条件の根拠資料を確認します。</div>';
-  var groups=['重要な検出','申請書類','第1期の主な添付','第2期の主な添付','条件付き書類','人間確認'];
-  groups.forEach(function(g){
-    var xs=r.rows.filter(function(x){return x.group===g});
-    if(xs.length) html+='<h4 style="margin:16px 0 4px">'+esc(g)+'</h4>'+renderRows(xs);
+  html+='<div class="card" style="margin-top:12px"><h3>次にすること</h3>';
+  if(actionRows.length){
+    html+='<ol style="padding-left:22px">'+actionRows.map(function(x){
+      var lead=x.status==='unknown'?'元PDFまたは鮮明な写真で再確認：':(x.status==='draft'?'正式版・受理済み原本を確認：':(x.status==='negative'?'現在の状態を更新確認：':'資料を確認：'));
+      return '<li style="margin:8px 0"><b>'+esc(lead+x.label)+'</b><br><span class="small">'+esc(x.detail)+'</span></li>';
+    }).join('')+'</ol>';
+  }else{
+    html+='<p>大きな不足候補は自動検出していません。下の人間確認項目を原本と照合してください。</p>';
+  }
+  if(manualCount)html+='<p class="small">日付・6か月要件・3％増額など、自動確定しない確認が '+manualCount+' 件あります。</p>';
+  html+='</div>';
+  var immediateGroups=['重要な検出','第1期の主な添付','第2期の主な添付'];
+  immediateGroups.forEach(function(g){
+    var xs=r.rows.filter(function(x){return x.group===g&&x.status!=='future'});
+    if(xs.length)html+='<h4 style="margin:16px 0 4px">'+esc(g)+'</h4>'+renderRows(xs);
   });
+  var applicationNow=r.rows.filter(function(x){return x.group==='申請書類'&&x.status!=='future'});
+  if(applicationNow.length)html+='<h4 style="margin:16px 0 4px">申請書類</h4>'+renderRows(applicationNow);
+  if(futureRows.length)html+='<details><summary>後の申請段階で必要になる書類（'+futureRows.length+'件）</summary>'+renderRows(futureRows)+'</details>';
+  var conditional=r.rows.filter(function(x){return x.group==='条件付き書類'});
+  if(conditional.length)html+='<details><summary>条件に当てはまる場合だけ必要な書類</summary>'+renderRows(conditional)+'</details>';
+  var manual=r.rows.filter(function(x){return x.group==='人間確認'});
+  if(manual.length)html+='<details><summary>原本で確認する項目（'+manual.length+'件）</summary>'+renderRows(manual)+'</details>';
   html+='<p class="small"><a target="_blank" rel="noopener" href="'+esc(r.sources.checklist)+'">厚生労働省 令和8年度支給申請チェックリスト</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.forms)+'">令和8年4月8日以降の申請様式</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.aichi)+'">愛知労働局</a></p>';
   return html;
 }
