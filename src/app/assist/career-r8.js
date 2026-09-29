@@ -160,13 +160,18 @@ function consistencyRow(status,label,detail){return row("書類同士の整合",
 function consistencyChecks(records){
   const rows=[];
   const actual=actualTransferDates(records),planned=plannedTransferDates(records);
+  const actualFormalEntries=actual.filter(x=>x.quality==="formal");
   const actualFormal=uniqueFormalDates(actual),plannedFormal=uniqueFormalDates(planned);
   let transfer=null;
   if(actualFormal.length>1){
     rows.push(consistencyRow("conflict","正社員転換日の一致","正式資料から複数の転換日候補（"+actualFormal.join(" / ")+"）を検出しました。OCR誤読を含め原本で確認してください。"));
   }else if(actualFormal.length===1){
     transfer=actualFormal[0];
-    rows.push(consistencyRow("match","正社員転換日","正式資料から転換日候補 "+transfer+" を検出しました。別の正式資料にも同日が記載されているか確認します。"));
+    if(actualFormalEntries.length>=2){
+      rows.push(consistencyRow("match","正社員転換日","2件以上の正式資料から同じ転換日 "+transfer+" を検出しました。"));
+    }else{
+      rows.push(consistencyRow("manual","正社員転換日","正式資料1件から転換日候補 "+transfer+" を検出しました。別の正式資料でも同日か確認してから一致扱いにしてください。"));
+    }
   }else if(actual.some(x=>x.quality==="draft")||planned.some(x=>x.quality==="draft")){
     rows.push(consistencyRow("draft","正社員転換日","草案・予定資料から日付候補は読み取れますが、正式な転換日としては扱いません。"));
   }else if(plannedFormal.length){
@@ -358,6 +363,9 @@ function selfTest(){
   const h=checkFiles(realLike);
   push("real-like-no-false-transfer-match",!h.rows.some(r=>r.group==="書類同士の整合"&&r.label==="正社員転換日"&&r.status==="match"));
   push("real-like-no-auto-3percent",h.rows.some(r=>r.group==="書類同士の整合"&&r.label==="転換前後の賃金比較"&&(r.status==="unknown"||r.status==="manual")));
+  const oneTransfer=[{name:"支給申請書.pdf",text:"キャリアアップ助成金支給申請書 正社員転換日 2026年10月1日",readable:true}];
+  const i=checkFiles(oneTransfer);
+  push("single-transfer-source-not-match",!i.rows.some(r=>r.group==="書類同士の整合"&&r.label==="正社員転換日"&&r.status==="match"));
   return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
 }
 root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,selfTest};
