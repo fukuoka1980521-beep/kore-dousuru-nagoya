@@ -417,6 +417,93 @@ function payrollCutoffRows(records){
   return [consistencyRow("manual","賃金締日と6か月比較期間","賃金締日の記載を検出しました。転換日が締日と一致しない場合、厚生労働省Q&A Q9〜Q11の考え方により比較期間が単純な暦月6か月と異なることがあります。この機能は締日から比較期間を勝手に推測しません。")];
 }
 
+
+const VERIFIED_AT="2026-09-29";
+const SOURCE_MAX_AGE_DAYS=45;
+function sourceStatus(asOf){
+  const base=new Date(VERIFIED_AT+"T00:00:00+09:00");
+  const now=asOf?new Date(asOf):new Date();
+  const age=Math.floor((now.getTime()-base.getTime())/86400000);
+  return {verifiedAt:VERIFIED_AT,ageDays:age,maxAgeDays:SOURCE_MAX_AGE_DAYS,stale:age>SOURCE_MAX_AGE_DAYS};
+}
+function parseYm(raw){
+  const s=String(raw||"").normalize("NFKC").replace(/[\s　]+/g,"");
+  let m=s.match(/^令和(元|[0-9]+)年([0-9]{1,2})月$/);
+  if(m){const y=2018+(m[1]==="元"?1:Number(m[1])),mo=Number(m[2]);if(mo>=1&&mo<=12)return String(y)+"-"+String(mo).padStart(2,"0");}
+  m=s.match(/^(20[0-9]{2})年([0-9]{1,2})月$/)||s.match(/^(20[0-9]{2})[-/.]([0-9]{1,2})$/);
+  if(m){const mo=Number(m[2]);if(mo>=1&&mo<=12)return m[1]+"-"+String(mo).padStart(2,"0");}
+  return null;
+}
+function ymIndex(ym){const p=String(ym||"").split("-").map(Number);return p.length===2?p[0]*12+(p[1]-1):null;}
+function consecutiveMonths(months){
+  const u=[...new Set(months)].sort();
+  if(u.length!==6)return false;
+  const idx=u.map(ymIndex);
+  return idx.every((v,i)=>i===0||v===idx[i-1]+1);
+}
+function explicitMonthlyFacts(records){
+  const out=[];
+  readableRecords(records).filter(r=>qualityOf(r)==="formal").forEach(r=>{
+    const t=String(safeText(r)).normalize("NFKC").replace(/[　]/g," ");
+    const c=compact(t+" "+safeName(r));
+    const defaultSide=/転換前|正社員転換前/.test(c)&&!/転換後|正社員転換後/.test(c)?"pre":(/転換後|正社員転換後/.test(c)&&!/転換前|正社員転換前/.test(c)?"post":null);
+    const re=/(転換前|正社員転換前|転換後|正社員転換後)?[s　]*(令和(?:元|[0-9]+)年[0-9]{1,2}月|20[0-9]{2}年[0-9]{1,2}月|20[0-9]{2}[-/.][0-9]{1,2})[s　:：、,]*(?:算定対象賃金|対象賃金|賃金総額|賃金)?[s　:：]*([0-9,]+)[s　]*(円|万円)/g;
+    let m;
+    while((m=re.exec(t))!==null){
+      const ym=parseYm(m[2]),amount=parseMoneyToken(m[3],m[4]);
+      const side=m[1]?(/後/.test(m[1])?"post":"pre"):defaultSide;
+      if(ym&&amount!=null&&side)out.push({side,ym,amount,record:safeName(r)});
+    }
+  });
+  return out;
+}
+function monthlyEvidenceRows(records){
+  const facts=explicitMonthlyFacts(records),rows=[];
+  for(const side of ["pre","post"]){
+    const label=side==="pre"?"転換前":"転換後",xs=facts.filter(x=>x.side===side);
+    const byMonth=new Map();
+    xs.forEach(x=>{if(!byMonth.has(x.ym))byMonth.set(x.ym,[]);byMonth.get(x.ym).push(x);});
+    const conflicts=[...byMonth.entries()].filter(([ym,a])=>new Set(a.map(x=>x.amount)).size>1);
+    if(conflicts.length){
+      rows.push(consistencyRow("conflict",label+"の月別賃金根拠",conflicts.map(([ym,a])=>ym+"："+a.map(x=>"「"+shortFile(x.record)+"」"+moneyFmt(x.amount)).join(" / ")).join(" ／ ")+"。同じ月の金額が一致しません。"));
+      continue;
+    }
+    const unique=[...byMonth.entries()].map(([ym,a])=>({ym,amount:a[0].amount,records:a.map(x=>x.record)})).sort((a,b)=>a.ym.localeCompare(b.ym));
+    if(unique.length===0){
+      rows.push(consistencyRow("unknown",label+"の月別賃金根拠","「"+label+"＋年月＋算定対象賃金額」の組み合わせを正式資料から抽出できません。"));
+      continue;
+    }
+    if(unique.length!==6){
+      rows.push(consistencyRow("risk",label+"の6か月賃金根拠",label+"の月別根拠は "+unique.length+"か月分です。"+unique.map(x=>x.ym+" "+moneyFmt(x.amount)+"（"+x.records.map(shortFile).join("・")+"）").join(" ／ ")+"。6か月そろっているか確認してください。"));
+      continue;
+    }
+    if(!consecutiveMonths(unique.map(x=>x.ym))){
+      rows.push(consistencyRow("risk",label+"の6か月賃金根拠","6か月分ありますが年月が連続していません。"+unique.map(x=>x.ym+" "+moneyFmt(x.amount)).join(" ／ ")+"。算定期間を原本で確認してください。"));
+      continue;
+    }
+    const total=unique.reduce((s,x)=>s+x.amount,0);
+    rows.push(consistencyRow("candidate",label+"の6か月賃金根拠",unique.map(x=>x.ym+" "+moneyFmt(x.amount)+"（"+x.records.map(shortFile).join("・")+"）").join(" ／ ")+"。月別候補合計 "+moneyFmt(total)+"。この合計はOCR抽出候補であり、算定対象外手当の混入がないことを別途確認してください。"));
+  }
+  return rows;
+}
+function monthlyTotals(records){
+  const facts=explicitMonthlyFacts(records),out={};
+  for(const side of ["pre","post"]){
+    const map=new Map(),xs=facts.filter(x=>x.side===side);
+    let bad=false;
+    xs.forEach(x=>{
+      if(!map.has(x.ym))map.set(x.ym,[]);
+      map.get(x.ym).push(x.amount);
+    });
+    const vals=[...map.entries()].map(([ym,a])=>({ym,vals:[...new Set(a)]}));
+    if(vals.some(x=>x.vals.length!==1)){out[side]=null;continue;}
+    const u=vals.map(x=>({ym:x.ym,amount:x.vals[0]})).sort((a,b)=>a.ym.localeCompare(b.ym));
+    if(u.length!==6||!consecutiveMonths(u.map(x=>x.ym))){out[side]=null;continue;}
+    out[side]={months:u,total:u.reduce((s,x)=>s+x.amount,0)};
+  }
+  return out;
+}
+
 function wageIncreaseCandidate(records){
   const monthAudit=monthlyWageAudit(records),f=wageCalcFacts(records),rows=[];
   rows.push(...monthAudit.rows);
@@ -550,6 +637,7 @@ function consistencyChecks(records){
   }
   rows.push(...payrollCutoffRows(records));
   rows.push(...specialR810Rows(records));
+  rows.push(...monthlyEvidenceRows(records));
   rows.push(...wageIncreaseCandidate(records));
   return rows;
 }
@@ -741,6 +829,20 @@ function selfTest(){
   ];
   const p=checkFiles(wageExcluded);
   push("wage-excluded-allowance-warning",p.rows.some(r=>r.label==="3％計算に含めない手当の確認"&&r.status==="manual"));
+  const monthlyComplete=[
+    {name:"転換前賃金根拠.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 転換前 2026年5月 算定対象賃金 200000円 転換前 2026年6月 算定対象賃金 200000円 転換前 2026年7月 算定対象賃金 200000円 転換前 2026年8月 算定対象賃金 200000円 転換前 2026年9月 算定対象賃金 200000円",readable:true},
+    {name:"転換後賃金根拠.pdf",text:"転換後 2026年10月 算定対象賃金 210000円 転換後 2026年11月 算定対象賃金 210000円 転換後 2026年12月 算定対象賃金 210000円 転換後 2027年1月 算定対象賃金 210000円 転換後 2027年2月 算定対象賃金 210000円 転換後 2027年3月 算定対象賃金 210000円",readable:true}
+  ];
+  const q=checkFiles(monthlyComplete);
+  push("monthly-six-months-complete",q.rows.some(r=>r.label==="転換前の6か月賃金根拠"&&r.status==="candidate")&&q.rows.some(r=>r.label==="転換後の6か月賃金根拠"&&r.status==="candidate"));
+  push("monthly-total-feeds-wage-calc",q.rows.some(r=>r.label==="3％賃金増額の計算候補"&&(r.status==="manual"||r.status==="candidate")));
+  const monthlyMissing=[{name:"転換前賃金根拠.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 転換前 2026年5月 算定対象賃金 200000円 転換前 2026年6月 算定対象賃金 200000円 転換前 2026年8月 算定対象賃金 200000円 転換前 2026年9月 算定対象賃金 200000円",readable:true}];
+  const r2=checkFiles(monthlyMissing);
+  push("monthly-missing-detected",r2.rows.some(r=>r.label==="転換前の6か月賃金根拠"&&r.status==="risk"));
+  const monthlyConflict=[{name:"台帳A.pdf",text:"転換前 2026年4月 算定対象賃金 200000円",readable:true},{name:"台帳B.pdf",text:"転換前 2026年4月 算定対象賃金 205000円",readable:true}];
+  const s2=checkFiles(monthlyConflict);
+  push("monthly-conflict-detected",s2.rows.some(r=>r.label==="転換前の月別賃金根拠"&&r.status==="conflict"));
+  push("source-freshness-stale-test",sourceStatus("2026-12-01T00:00:00+09:00").stale===true);
   const month6=[
     {name:"転換前_賃金台帳.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 所定労働時間 160時間 2026年5月 算定対象賃金 200000円 所定労働時間 160時間 2026年6月 算定対象賃金 200000円 所定労働時間 160時間 2026年7月 算定対象賃金 200000円 所定労働時間 160時間 2026年8月 算定対象賃金 200000円 所定労働時間 160時間 2026年9月 算定対象賃金 200000円 所定労働時間 160時間 転換前 支給形態 月給",readable:true},
     {name:"転換後_賃金台帳.pdf",text:"転換後 2026年10月 算定対象賃金 210000円 所定労働時間 160時間 2026年11月 算定対象賃金 210000円 所定労働時間 160時間 2026年12月 算定対象賃金 210000円 所定労働時間 160時間 2027年1月 算定対象賃金 210000円 所定労働時間 160時間 2027年2月 算定対象賃金 210000円 所定労働時間 160時間 2027年3月 算定対象賃金 210000円 所定労働時間 160時間 転換後 支給形態 月給",readable:true}
