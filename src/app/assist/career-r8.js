@@ -35,9 +35,11 @@ function evidenceState(records,rule,opts){
   const readable=readableRecords(records);
   const hits=readable.filter(r=>matchRecord(r,rule));
   if(hits.length){
-    if(hits.some(looksDraft)) return {status:"draft",detail:"該当書類らしいものはありますが、下書き・草案・未確定資料の可能性があります。提出済み・受理済み・署名済みの正式資料としては自動確認しません。"};
+    const valid=hits.filter(r=>!looksDraft(r)&&!(opts.retrospectiveSensitive&&looksRetrospective(r)));
+    if(valid.length) return {status:"good",detail:"本文またはファイル名から、草案・後日確認資料ではない該当書類の手掛かりを検出しました。"};
     if(opts.retrospectiveSensitive&&hits.some(looksRetrospective)) return {status:"manual",detail:"書類は確認できましたが、過去の労働条件を後日確認・明文化した資料の可能性があります。当時交付された雇用契約書等と同等に扱えるかは労働局確認が必要です。"};
-    return {status:"good",detail:"本文またはファイル名から該当書類の手掛かりを検出しました。"};
+    if(hits.some(looksDraft)) return {status:"draft",detail:"該当書類らしいものはありますが、下書き・草案・未確定資料の可能性があります。提出済み・受理済み・署名済みの正式資料としては自動確認しません。"};
+    return {status:"manual",detail:"該当書類らしいものはありますが、正式資料としての状態を自動確定できません。原本を確認してください。"};
   }
   if(opts.future) return {status:"future",detail:"現在の書類セットは申請前準備段階の可能性があります。この書類は支給申請段階で必要になるため、今この時点で未作成でも直ちに不足とは扱いません。"};
   const unread=unreadableRecords(records);
