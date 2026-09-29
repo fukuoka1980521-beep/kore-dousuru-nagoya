@@ -1,6 +1,6 @@
 (function(root){
 "use strict";
-const VERSION="CAREER_UP_R8_20260408_V1_6_20260929";
+const VERSION="CAREER_UP_R8_20260408_V1_7_20260929";
 const SOURCE={
   ministry:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/part_haken/jigyounushi/career.html",
   forms:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000118801_00022.html",
@@ -461,8 +461,25 @@ function wageIncreaseCandidate(records){
   return rows;
 }
 
+
+const SOURCE_META={verifiedAt:"2026-09-29",qaUpdatedAt:"2026-07-29",packApplicableFrom:"2026-04-08",packApplicableUntil:"2027-03-31",watch:"daily-github-actions"};
+function applicablePackRows(records){
+  const actual=actualTransferDates(records).filter(x=>x.quality==="formal");
+  const ds=[...new Set(actual.map(x=>x.date))];
+  if(ds.length!==1)return [consistencyRow("unknown","適用する制度ルール版","正式な正社員転換日を一意に読み取れないため、令和8年4月8日以降用ルールの適用可否を自動確定しません。")];
+  const d=ds[0];
+  if(d>=SOURCE_META.packApplicableFrom&&d<=SOURCE_META.packApplicableUntil){
+    return [consistencyRow("match","適用する制度ルール版","正社員転換日候補 "+d+" は、現在の「令和8年4月8日以降の取組」用FORM RULE PACKの対象期間内です。")];
+  }
+  if(d>="2026-04-01"&&d<"2026-04-08"){
+    return [consistencyRow("stop","適用する制度ルール版","正社員転換日候補 "+d+" は令和8年4月1日〜7日の取組です。このFORM RULE PACK（4月8日以降用）を適用しません。厚生労働省の4月1日〜7日用様式・チェックリストで確認してください。")];
+  }
+  return [consistencyRow("stop","適用する制度ルール版","正社員転換日候補 "+d+" は現在の令和8年4月8日以降用FORM RULE PACKの対象期間外です。該当年度・取組日用の公式様式へ切り替えてください。")];
+}
+
 function consistencyChecks(records){
   const rows=[];
+  rows.push(...applicablePackRows(records));
   rows.push(fieldConsistency("対象労働者名",personFacts(records)));
   rows.push(fieldConsistency("事業所・会社名",companyFacts(records)));
   const actual=actualTransferDates(records),planned=plannedTransferDates(records);
@@ -608,7 +625,7 @@ function checkFiles(records){
   return {
     version:VERSION,course:"正社員化コース",stage,phase:phase2?"第2期として確認":"第1期として確認（第2期表記を検出していないため）",
     rows,summary,sources:SOURCE,
-    notice:"厚生労働省の令和8年4月8日以降用・正社員化コース支給申請チェックリストを基礎にした提出前セルフチェックです。受理・支給を保証しません。"
+    notice:"厚生労働省の令和8年4月8日以降用・正社員化コース支給申請チェックリストを基礎にした提出前セルフチェックです。公式ルール最終確認 "+SOURCE_META.verifiedAt+"。受理・支給を保証しません。"
   };
 }
 function check(text,names){return checkFiles([{name:(names||[]).join(" "),text:text||"",readable:true}]);}
@@ -736,7 +753,17 @@ function selfTest(){
   ];
   const u=checkFiles(dc);
   push("r810-special-wage-rule",u.rows.some(r=>r.label==="令和8年10月1日以降の生涯設計手当等"&&r.status==="risk"));
+  const oldPeriod=[
+    {name:"申請書.pdf",text:"キャリアアップ助成金支給申請書 正社員転換日 2026年4月3日",readable:true}
+  ];
+  const v=checkFiles(oldPeriod);
+  push("pack-gate-0401",v.rows.some(r=>r.label==="適用する制度ルール版"&&r.status==="stop"&&r.detail.indexOf("4月1日〜7日")>=0));
+  const inPeriod=[
+    {name:"申請書.pdf",text:"キャリアアップ助成金支給申請書 正社員転換日 2026年10月1日",readable:true}
+  ];
+  const w=checkFiles(inPeriod);
+  push("pack-gate-current",w.rows.some(r=>r.label==="適用する制度ルール版"&&r.status==="match"));
   return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
 }
-root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,monthlyWageAudit,wageIncreaseCandidate,selfTest};
+root.CareerUpR8Pack={VERSION,SOURCE,SOURCE_META,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,monthlyWageAudit,wageIncreaseCandidate,applicablePackRows,selfTest};
 })(window);
