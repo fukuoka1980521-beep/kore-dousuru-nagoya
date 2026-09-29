@@ -5,3 +5,5 @@ console.log(JSON.stringify(result, null, 2));
 if (result.pass !== result.total) {
   process.exitCode = 1;
 }
+
+// trigger-v1
