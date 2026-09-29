@@ -1,0 +1,21 @@
+name: Application Assist UI static test
+on:
+  push:
+    branches: [master]
+    paths:
+      - "src/app/assist/**"
+      - "handa/**"
+      - "tests/check-assist-html.py"
+      - ".github/workflows/application-assist-ui-test.yml"
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check src/app/assist/career-r8.js
+      - run: node --check handa/career-r8.js
+      - run: python tests/check-assist-html.py src/app/assist/index.html handa/index.html
