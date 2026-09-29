@@ -349,6 +349,15 @@ function selfTest(){
   ];
   const g=checkFiles(shortRule);
   push("six-month-risk",g.rows.some(r=>r.group==="書類同士の整合"&&r.label==="賃金規定等の6か月適用期間"&&r.status==="risk"));
+  const realLike=[
+    {name:"重要判断メモ.pdf",text:"キャリアアップ助成金 正社員化コース キャリアアップ計画 未作成・未提出 正社員転換希望日 2026年10月1日",readable:true},
+    {name:"キャリアアップ計画書_転記用下書き.pdf",text:"キャリアアップ計画書 転記用下書き 提出用の公式様式そのものではありません 計画期間 要入力 取組開始・転換予定 要確定",readable:true},
+    {name:"転換前雇用契約書_確認版.pdf",text:"雇用契約書兼労働条件通知書 時給制 基本賃金 時間給 1150円 過去の日付に遡って署名しない 実際の労働条件を確認し明文化する",readable:true},
+    {name:"正社員雇用契約書_草案.pdf",text:"正社員雇用契約書 草案 雇用開始日 要確定 当初予定 2026年10月1日 基本月給 220000円",readable:true}
+  ];
+  const h=checkFiles(realLike);
+  push("real-like-no-false-transfer-match",!h.rows.some(r=>r.group==="書類同士の整合"&&r.label==="正社員転換日"&&r.status==="match"));
+  push("real-like-no-auto-3percent",h.rows.some(r=>r.group==="書類同士の整合"&&r.label==="転換前後の賃金比較"&&(r.status==="unknown"||r.status==="manual")));
   return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
 }
 root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,selfTest};
