@@ -9,6 +9,11 @@ on:
       - "scripts/check-career-sources.py"
       - "monitor/career-source-baseline.json"
       - ".github/workflows/career-source-watch.yml"
+
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   watch:
     runs-on: ubuntu-latest
@@ -17,4 +22,39 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python scripts/check-career-sources.py
+      - name: Check official sources
+        id: sourcecheck
+        shell: bash
+        run: |
+          set +e
+          python scripts/check-career-sources.py > source-watch.log 2>&1
+          code=$?
+          cat source-watch.log
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Open review issue when official content changes
+        if: steps.sourcecheck.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          title="Career Up official source changed - review FORM RULE PACK"
+          count=$(gh issue list --state open --search "$title in:title" --json number --jq 'length')
+          if [ "$count" = "0" ]; then
+            {
+              echo "厚生労働省の監視対象ソースに変更を検出しました。"
+              echo
+              echo "FORM RULE PACK と画面文言を再確認し、確認後に baseline / verifiedAt を更新してください。"
+              echo
+              echo '~~~text'
+              cat source-watch.log
+              echo '~~~'
+            } > issue-body.md
+            gh issue create --title "$title" --body-file issue-body.md
+          else
+            echo "Open review issue already exists; no duplicate created."
+          fi
+      - name: Fail when verification is not clean
+        if: steps.sourcecheck.outputs.code != '0'
+        shell: bash
+        run: exit ${{ steps.sourcecheck.outputs.code }}
