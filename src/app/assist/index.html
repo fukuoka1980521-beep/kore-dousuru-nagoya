@@ -11,6 +11,7 @@ textarea{width:100%;min-height:120px;border:2px solid #b7c0cd;border-radius:12px
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-top:14px}.card{border:1px solid var(--line);border-radius:14px;padding:15px;background:white}.card h3{margin:4px 0 8px;line-height:1.4}.badge{display:inline-block;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;background:#edf2f7}.open{background:#e9f7ef;color:#166534}.closed{background:#fff0f0;color:#9f2d2d}.check{background:#fff4dd;color:#7c4700}.next{border-left:4px solid var(--brand);padding-left:10px;margin-top:10px}.small{font-size:13px;color:var(--muted)}.filebox{border:2px dashed #aab3c0;border-radius:14px;padding:16px;background:#fafbfd}.notice{padding:12px 14px;border-radius:12px;background:var(--warn);margin-top:12px}.resultrow{padding:10px 0;border-top:1px solid var(--line)}.good{background:var(--good);color:#166534}.warn{background:var(--warn);color:#7c4700}.stop{background:var(--stop);color:#9f2d2d}
 a{color:#075ea8;text-underline-offset:3px}
 @media(max-width:640px){.wrap{padding:10px}.hero{padding:20px 16px}.section{padding:16px}.btn{width:100%}}
+@media print{.hero,.topnav,#subsidy,.filebox,.notice,footer{display:none!important}body{background:white}.section{border:0}.wrap{max-width:none;padding:0}#documents{display:block!important}#docresults{display:block!important}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -27,7 +28,7 @@ a{color:#075ea8;text-underline-offset:3px}
 <p class="small">登録済みの公式制度だけを候補にします。候補表示は対象確定・採択保証ではありません。分からない条件は補完しません。</p></section>
 <section id="documents" class="section"><h2>PDF・写真で申請書を提出前チェック</h2>
 <p>書類の制度名・様式・日付・金額・添付資料に加え、対応制度では書類同士の氏名・会社名・転換日等を照合します。キャリアアップ助成金では、必要な根拠値が安全に読めた場合だけ3％賃金増額の「計算候補」も表示します。未対応制度は無理に判定しません。</p>
-<div class="filebox"><input id="files" type="file" accept="image/*,.pdf,application/pdf" multiple><p class="small">最大20ファイル・各15MB・合計120MBまで。PDFは最大20ページを確認し、文字情報を優先、画像やスキャンPDFはOCRします。ファイル自体は当サイトに保存しません。</p><button id="check" class="btn">提出前チェックを開始</button> <button id="clear" class="btn" style="background:white;color:var(--brand);border:1px solid var(--brand)">選択と結果を消す</button><div id="progress" class="small" style="margin-top:8px"></div></div>
+<div class="filebox"><input id="files" type="file" accept="image/*,.pdf,application/pdf" multiple><p class="small">最大20ファイル・各15MB・合計120MBまで。PDFは最大20ページを確認し、文字情報を優先、画像やスキャンPDFはOCRします。ファイル自体は当サイトに保存しません。</p><button id="check" class="btn">提出前チェックを開始</button> <button id="clear" class="btn" style="background:white;color:var(--brand);border:1px solid var(--brand)">選択と結果を消す</button> <button id="printResult" class="btn" style="background:white;color:var(--brand);border:1px solid var(--brand)">結果を印刷／PDF保存</button><div id="progress" class="small" style="margin-top:8px"></div></div>
 <div id="docresults" aria-live="polite"></div>
 <div class="notice"><b>この機能の境界</b><br>行政による受理・採択・法的妥当性は確定しません。読み取れない箇所を「問題なし」には変換しません。</div></section>
 <footer class="small" style="padding:18px 4px">非公式の実証機能です。最終判断は公式情報・担当窓口で確認してください。</footer>
@@ -58,14 +59,14 @@ function renderRows(rows){
 function renderCareerPack(records){
   var r=CareerUpR8Pack.checkFiles(records);
   var stageLabel=r.stage==='PREPARATION'?'申請前の準備段階':(r.stage==='APPLICATION'?'支給申請段階':'段階は要確認');
-  var actionRows=r.rows.filter(function(x){return ['negative','draft','missing','unknown'].indexOf(x.status)>=0&&x.status!=='future'}).slice(0,5);
+  var actionRows=r.rows.filter(function(x){return ['conflict','risk','negative','draft','missing','unknown'].indexOf(x.status)>=0&&x.status!=='future'}).slice(0,5);
   var manualCount=r.rows.filter(function(x){return x.status==='manual'}).length;
   var futureRows=r.rows.filter(function(x){return x.status==='future'});
   var html='<div class="notice"><b>'+esc(r.course)+'：正式FORM RULE PACK</b><br>'+esc(r.notice)+'<br><b>現在の書類セット：</b>'+esc(stageLabel)+' ／ '+esc(r.phase)+'</div>';
   html+='<div class="card" style="margin-top:12px"><h3>次にすること</h3>';
   if(actionRows.length){
     html+='<ol style="padding-left:22px">'+actionRows.map(function(x){
-      var lead=x.status==='unknown'?'元PDFまたは鮮明な写真で再確認：':(x.status==='draft'?'正式版・受理済み原本を確認：':(x.status==='negative'?'現在の状態を更新確認：':'資料を確認：'));
+      var lead=x.status==='conflict'?'書類同士の不一致候補を原本確認：':(x.status==='risk'?'要件事故を防ぐため確認：':(x.status==='unknown'?'元PDFまたは鮮明な写真で再確認：':(x.status==='draft'?'正式版・受理済み原本を確認：':(x.status==='negative'?'現在の状態を更新確認：':'資料を確認：'))));
       return '<li style="margin:8px 0"><b>'+esc(lead+x.label)+'</b><br><span class="small">'+esc(x.detail)+'</span></li>';
     }).join('')+'</ol>';
   }else{
@@ -73,6 +74,8 @@ function renderCareerPack(records){
   }
   if(manualCount)html+='<p class="small">日付・6か月要件・3％増額など、自動確定しない確認が '+manualCount+' 件あります。</p>';
   html+='</div>';
+  var consistency=r.rows.filter(function(x){return x.group==='書類同士の整合'});
+  if(consistency.length)html+='<h4 style="margin:16px 0 4px">書類同士の整合</h4>'+renderRows(consistency);
   var immediateGroups=['重要な検出','第1期の主な添付','第2期の主な添付'];
   immediateGroups.forEach(function(g){
     var xs=r.rows.filter(function(x){return x.group===g&&x.status!=='future'});
@@ -123,4 +126,5 @@ document.getElementById('check').onclick=async function(){
   }finally{this.disabled=false}
 }
 document.getElementById('clear').onclick=function(){document.getElementById('files').value='';document.getElementById('docresults').innerHTML='';document.getElementById('progress').textContent='';};
+document.getElementById('printResult').onclick=function(){if(!document.getElementById('docresults').textContent.trim()){alert('先に書類チェックを実行してください。');return}window.print();};
 </script></body></html>
