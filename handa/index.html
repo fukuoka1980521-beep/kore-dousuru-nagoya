@@ -318,19 +318,50 @@ function hasAny(text,arr){return arr.some(v=>text.includes(v))}
 function docRuleResults(text,names){const norm=text.replace(/[\s　]+/g,' '),compact=text.replace(/[\s　]+/g,'');const results=[];const add=(status,label,detail)=>results.push({status,label,detail});const correctForm=hasAny(compact,['様式第1号の1','様式第１号の１'])&&compact.includes('地域脱炭素移行')&&compact.includes('事業所設置型');add(correctForm?'good':'stop','書式・様式',correctForm?'様式第1号の1（事業所設置型）らしいことを確認しました。':'指定様式を確認できません。別様式・旧様式・読み取り失敗の可能性があります。');const phones=(norm.match(/0\d{1,4}[-ー－ ]?\d{1,4}[-ー－ ]?\d{3,4}/g)||[]);add(phones.length?'good':'warn','連絡先',phones.length?'電話番号らしい記載を検出しました。':'電話番号を読み取れません。空欄かOCR読み取り失敗の可能性があります。');const dates=(norm.match(/(?:令和\s*\d+|20\d{2}|\d{1,2})\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日/g)||[]);add(dates.length>=2?'good':'warn','工事予定日',dates.length>=2?'日付を複数検出しました。着工予定日・完了予定日を目視でも確認してください。':'着工予定日・完了予定日の両方を確認できません。');const kw=/(最大出力|kW)/.test(norm)&&/\d+(?:\.\d+)?\s*kW/i.test(norm);add(kw?'good':'warn','太陽光発電の最大出力',kw?'kWの数値を検出しました。':'最大出力の数値を確認できません。');const yen=(norm.match(/[0-9０-９,，]{3,}\s*円/g)||[]);add(yen.length>=2?'good':'warn','補助対象経費・申請額',yen.length>=2?'円金額を複数検出しました。計算式との整合は目視確認が必要です。':'必要な金額欄を十分に読み取れません。');const attachmentRules=[['見積書',['見積','御見積']],['サービス料金の積算根拠',['積算根拠','料金内訳']],['補助金額相当分の控除確認',['控除','補助金額相当']],['継続使用措置の証明',['法定耐用年数','継続的に使用']],['設置設計図',['設置設計図','設計図']],['発電量見込み・消費電力量',['発電量','消費電力量']]];for(const [label,keys] of attachmentRules){const found=hasAny(norm,keys)||names.some(n=>keys.some(k=>n.includes(k)));add(found?'good':'warn','添付：'+label,found?'資料名または本文に該当語を検出しました。':'該当資料を確認できません。未添付かファイル名・OCRで判別できない可能性があります。')}add('warn','申請者名・所在地','OCRだけでは空欄と読み取り失敗を安全に区別できないため、原本を目視確認してください。');add('warn','内容の法的・制度的妥当性','この機械チェックでは確定しません。要綱・事務局の最終確認が必要です。');return results}
 function renderDocResults(results){const cls={good:'statusGood',warn:'statusWarn',stop:'statusStop'},label={good:'確認できた',warn:'要確認',stop:'停止'};const stops=results.filter(r=>r.status==='stop').length,warns=results.filter(r=>r.status==='warn').length;return `<div class="card"><h3>${stops?'指定様式を確認できません':'申請前チェック結果'}</h3><p>${stops?'このまま提出判断には進めません。':'機械的に確認できた範囲を表示します。'} 要確認 ${warns}件。</p><div>${results.map(r=>`<div style="padding:10px 0;border-top:1px solid var(--line)"><span class="badge ${cls[r.status]}">${label[r.status]}</span> <b>${esc(r.label)}</b><br><span class="small">${esc(r.detail)}</span></div>`).join('')}</div><p class="small">結果は行政の受理・採択を保証しません。読み取れない部分は「問題なし」に変換しません。</p></div>`}
 function renderCareerPackResults(pack){
-  const cls={good:'statusGood',warn:'statusWarn',manual:'statusWarn',conditional:'statusWarn'};
-  const label={good:'確認できた',warn:'不足候補',manual:'人間確認',conditional:'条件付き'};
-  const groups=['申請書類','第1期の主な添付','条件付き書類','人間確認'];
-  let html='<div class="card"><h3>キャリアアップ助成金（正社員化コース）</h3><p>'+esc(pack.notice)+'</p><p><b>判定基準：</b>'+esc(pack.period)+' ／ '+esc(pack.phase)+'</p>';
+  const cls={good:'statusGood',missing:'statusWarn',unknown:'statusWarn',draft:'statusWarn',negative:'statusStop',future:'statusGood',manual:'statusWarn',conditional:'statusWarn'};
+  const label={good:'確認できた',missing:'不足候補',unknown:'判定不能',draft:'草案・下書き',negative:'要更新確認',future:'後の申請段階',manual:'人間確認',conditional:'条件付き'};
+  const groups=['重要な検出','申請書類','第1期の主な添付','第2期の主な添付','条件付き書類','人間確認'];
+  const stageLabel=pack.stage==='PREPARATION'?'申請前の準備段階':(pack.stage==='APPLICATION'?'支給申請段階':'段階は要確認');
+  let html='<div class="card"><h3>キャリアアップ助成金（正社員化コース）</h3><p>'+esc(pack.notice)+'</p><p><b>現在の書類セット：</b>'+esc(stageLabel)+' ／ '+esc(pack.phase)+'</p>';
+  if(pack.stage==='PREPARATION')html+='<div class="notice"><b>今見るべきもの</b><br>支給申請書一式はまだ「不足」としません。受理済み計画書、転換前の就業規則等、雇用条件の根拠資料を先に確認します。</div>';
   for(const g of groups){
     const rows=pack.rows.filter(r=>r.group===g);
     if(!rows.length)continue;
-    html+='<h4>'+esc(g)+'</h4>'+rows.map(r=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><span class="badge '+cls[r.status]+'">'+label[r.status]+'</span> <b>'+esc(r.label)+'</b><br><span class="small">'+esc(r.detail)+'</span></div>').join('');
+    html+='<h4>'+esc(g)+'</h4>'+rows.map(r=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><span class="badge '+(cls[r.status]||'statusWarn')+'">'+(label[r.status]||'要確認')+'</span> <b>'+esc(r.label)+'</b><br><span class="small">'+esc(r.detail)+'</span></div>').join('');
   }
-  html+='<p class="small"><a href="'+esc(pack.sources.checklist)+'" target="_blank" rel="noopener">厚生労働省 支給申請チェックリスト</a> ／ <a href="'+esc(pack.sources.forms)+'" target="_blank" rel="noopener">令和8年4月8日以降の申請様式</a> ／ <a href="'+esc(pack.sources.aichi)+'" target="_blank" rel="noopener">愛知労働局</a></p><p class="small">この結果は受理・支給を保証しません。OCRで読めない箇所は「問題なし」にしません。</p></div>';
+  html+='<p class="small"><a href="'+esc(pack.sources.checklist)+'" target="_blank" rel="noopener">厚生労働省 支給申請チェックリスト</a> ／ <a href="'+esc(pack.sources.forms)+'" target="_blank" rel="noopener">令和8年4月8日以降の申請様式</a> ／ <a href="'+esc(pack.sources.aichi)+'" target="_blank" rel="noopener">愛知労働局</a></p><p class="small">この結果は受理・支給を保証しません。読取不能を「不足」や「問題なし」に変換しません。</p></div>';
   return html;
 }
-async function runDocCheck(){const input=document.getElementById('docFiles'),out=document.getElementById('docResults'),prog=document.getElementById('docProgress');const files=[...input.files];if(!files.length){out.innerHTML='<div class="empty">PDFまたは写真を選択してください。</div>';return}if(files.length>8){out.innerHTML='<div class="empty">一度に確認できるのは8ファイルまでです。</div>';return}document.getElementById('docCheckBtn').disabled=true;out.innerHTML='';let all='',errors=[],names=files.map(f=>f.name);try{for(let i=0;i<files.length;i++){try{all+='\n'+await extractFileText(files[i],i+1,files.length)}catch(e){errors.push(files[i].name+'：'+e.message)}}if(window.CareerUpR8Pack&&CareerUpR8Pack.detect(all,names)){const pack=CareerUpR8Pack.check(all,names);out.innerHTML=renderCareerPackResults(pack)+(errors.length?`<div class="notice"><b>解析できなかったファイル</b><br>${errors.map(esc).join('<br>')}</div>`:'');}else{const rr=docRuleResults(all,names);out.innerHTML=renderDocResults(rr)+(errors.length?`<div class="notice"><b>解析できなかったファイル</b><br>${errors.map(esc).join('<br>')}</div>`:'');}prog.textContent='解析完了。'}catch(e){out.innerHTML=`<div class="notice"><b>解析を完了できませんでした。</b><br>${esc(e.message)}<br>ファイルをPDF化し直すか、公式窓口で確認してください。</div>`;prog.textContent=''}finally{document.getElementById('docCheckBtn').disabled=false}}
+async function runDocCheck(){
+  const input=document.getElementById('docFiles'),out=document.getElementById('docResults'),prog=document.getElementById('docProgress');
+  const files=[...input.files];
+  if(!files.length){out.innerHTML='<div class="empty">PDFまたは写真を選択してください。</div>';return}
+  if(files.length>8){out.innerHTML='<div class="empty">一度に確認できるのは8ファイルまでです。</div>';return}
+  document.getElementById('docCheckBtn').disabled=true;out.innerHTML='';
+  let all='',errors=[],names=files.map(f=>f.name),records=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      try{
+        const txt=await extractFileText(files[i],i+1,files.length);
+        records.push({name:files[i].name,text:txt,readable:true,error:''});
+        all+='\n'+txt;
+      }catch(e){
+        records.push({name:files[i].name,text:'',readable:false,error:e.message});
+        errors.push(files[i].name+'：'+e.message);
+      }
+    }
+    if(window.CareerUpR8Pack&&CareerUpR8Pack.detectFiles(records)){
+      const pack=CareerUpR8Pack.checkFiles(records);
+      out.innerHTML=renderCareerPackResults(pack)+(errors.length?'<div class="notice"><b>読取できなかったファイル</b><br>これらは「不足」ではなく「判定不能」として扱います。<br>'+errors.map(esc).join('<br>')+'</div>':'');
+    }else{
+      const rr=docRuleResults(all,names);
+      out.innerHTML=renderDocResults(rr)+(errors.length?'<div class="notice"><b>解析できなかったファイル</b><br>'+errors.map(esc).join('<br>')+'</div>':'');
+    }
+    prog.textContent='解析完了。';
+  }catch(e){
+    out.innerHTML='<div class="notice"><b>解析を完了できませんでした。</b><br>'+esc(e.message)+'<br>ファイルをPDF化し直すか、公式窓口で確認してください。</div>';prog.textContent='';
+  }finally{document.getElementById('docCheckBtn').disabled=false}
+}
 document.getElementById('docCheckBtn').addEventListener('click',runDocCheck);
 
 const checked=new Date(D.meta.verifiedAt+'T00:00:00+09:00');
