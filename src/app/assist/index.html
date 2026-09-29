@@ -48,8 +48,8 @@ function detect(t){var x=t.replace(/\s+/g,'');if(window.CareerUpR8Pack&&CareerUp
 function simpleSignals(t){var n=t.replace(/[\s　]+/g,' '),a=[];a.push({s:/様式|申請書|計画書|報告書/.test(n)?'good':'warn',l:'書類種別',d:/様式|申請書|計画書|報告書/.test(n)?'申請・計画等の書類名らしい記載を検出':'書類名を十分に読み取れません'});a.push({s:/(令和\s*\d+|20\d{2}).{0,8}年/.test(n)?'good':'warn',l:'日付',d:/(令和\s*\d+|20\d{2}).{0,8}年/.test(n)?'日付らしい記載を検出':'日付を確認できません'});a.push({s:/[0-9０-９,，]{3,}\s*円/.test(n)?'good':'warn',l:'金額',d:/[0-9０-９,，]{3,}\s*円/.test(n)?'金額らしい記載を検出':'金額欄を確認できません'});return a}
 function obuRules(t,names){var x=t.replace(/[\s　]+/g,''),all=x+' '+names.join(' ');var req=[['事業計画書（第1号様式）',/事業計画書|第1号様式|第１号様式/],['実施計画書（第2号様式）',/実施計画書|第2号様式|第２号様式/],['企業概要資料',/企業概要|会社概要|開業届|資本金|従業員/],['見積書・事業詳細資料',/見積|御見積|内訳|仕様書|カタログ/]];return req.map(function(r){var ok=r[1].test(all);return {s:ok?'good':'warn',l:r[0],d:ok?'本文またはファイル名に手掛かりを検出':'確認できません。未添付または読取失敗の可能性'}})}
 function renderRows(rows){
-  var labels={good:'確認できた',match:'一致',conflict:'不一致候補',risk:'要確認',missing:'不足候補',unknown:'判定不能',draft:'草案・下書き',negative:'要更新確認',future:'後の申請段階',manual:'人間確認',conditional:'条件付き',warn:'要確認'};
-  var classes={good:'good',match:'good',conflict:'stop',risk:'warn',missing:'warn',unknown:'warn',draft:'warn',negative:'stop',future:'good',manual:'warn',conditional:'warn',warn:'warn'};
+  var labels={good:'確認できた',match:'一致',candidate:'計算候補',conflict:'不一致候補',risk:'要確認',missing:'不足候補',unknown:'判定不能',draft:'草案・下書き',negative:'要更新確認',future:'後の申請段階',manual:'人間確認',conditional:'条件付き',warn:'要確認'};
+  var classes={good:'good',match:'good',candidate:'warn',conflict:'stop',risk:'warn',missing:'warn',unknown:'warn',draft:'warn',negative:'stop',future:'good',manual:'warn',conditional:'warn',warn:'warn'};
   return rows.map(function(r){
     var st=r.status||r.s||'warn', label=labels[st]||'要確認', cl=classes[st]||'warn';
     return '<div class="resultrow"><span class="badge '+cl+'">'+label+'</span> <b>'+esc(r.label||r.l)+'</b><br><span class="small">'+esc(r.detail||r.d)+'</span></div>';
@@ -85,7 +85,7 @@ function renderCareerPack(records){
   if(conditional.length)html+='<details><summary>条件に当てはまる場合だけ必要な書類</summary>'+renderRows(conditional)+'</details>';
   var manual=r.rows.filter(function(x){return x.group==='人間確認'});
   if(manual.length)html+='<details><summary>原本で確認する項目（'+manual.length+'件）</summary>'+renderRows(manual)+'</details>';
-  html+='<p class="small"><a target="_blank" rel="noopener" href="'+esc(r.sources.checklist)+'">厚生労働省 令和8年度支給申請チェックリスト</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.forms)+'">令和8年4月8日以降の申請様式</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.aichi)+'">愛知労働局</a></p>';
+  html+='<p class="small"><a target="_blank" rel="noopener" href="'+esc(r.sources.checklist)+'">厚生労働省 令和8年度支給申請チェックリスト</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.forms)+'">令和8年4月8日以降の申請様式</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.aichi)+'">愛知労働局</a> ／ <a target="_blank" rel="noopener" href="'+esc(r.sources.qa)+'">厚生労働省Q&A（令和8年7月29日）</a></p>';
   return html;
 }
 document.getElementById('check').onclick=async function(){
