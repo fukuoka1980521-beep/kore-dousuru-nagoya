@@ -26,7 +26,7 @@ a{color:#075ea8;text-underline-offset:3px}
 <p><button id="search" class="btn">候補を探す</button></p><div id="results" aria-live="polite"></div>
 <p class="small">登録済みの公式制度だけを候補にします。候補表示は対象確定・採択保証ではありません。分からない条件は補完しません。</p></section>
 <section id="documents" class="section"><h2>PDF・写真で申請書を提出前チェック</h2>
-<p>書類の制度名・様式らしさ・日付・金額・添付資料の手掛かりを確認します。未対応制度は無理に判定せず、最初に「詳細チェック未対応」と表示します。</p>
+<p>書類の制度名・様式・日付・金額・添付資料に加え、対応制度では書類同士の氏名・会社名・転換日等を照合します。キャリアアップ助成金では、必要な根拠値が安全に読めた場合だけ3％賃金増額の「計算候補」も表示します。未対応制度は無理に判定しません。</p>
 <div class="filebox"><input id="files" type="file" accept="image/*,.pdf,application/pdf" multiple><p class="small">最大8ファイル・各15MB。PDFは文字情報を優先し、画像やスキャンPDFはOCRします。ファイル自体は当サイトに保存しません。</p><button id="check" class="btn">提出前チェックを開始</button><div id="progress" class="small" style="margin-top:8px"></div></div>
 <div id="docresults" aria-live="polite"></div>
 <div class="notice"><b>この機能の境界</b><br>行政による受理・採択・法的妥当性は確定しません。読み取れない箇所を「問題なし」には変換しません。</div></section>
