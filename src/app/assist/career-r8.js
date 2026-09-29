@@ -131,5 +131,36 @@ function checkFiles(records){
   };
 }
 function check(text,names){return checkFiles([{name:(names||[]).join(" "),text:text||"",readable:true}]);}
-root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage};
+function selfTest(){
+  const cases=[];
+  function push(name,ok,detail){cases.push({name,ok:!!ok,detail:detail||""});}
+  const prep=[
+    {name:"キャリアアップ計画書_転記用下書き.pdf",text:"キャリアアップ計画書 転記用下書き 提出用の公式様式そのものではありません 要入力 要確定 正社員化コース",readable:true},
+    {name:"転換前雇用契約書_確認版.pdf",text:"雇用契約書 労働条件通知書 過去の日付に遡って署名しない 実際の労働条件を確認し明文化する",readable:true},
+    {name:"正社員雇用契約書_草案.pdf",text:"正社員雇用契約書 草案 要確定",readable:true}
+  ];
+  const a=checkFiles(prep);
+  push("prep-stage",a.stage==="PREPARATION",a.stage);
+  push("application-forms-future",a.rows.filter(r=>r.group==="申請書類").every(r=>r.status==="future"));
+  push("plan-draft-not-good",a.rows.some(r=>r.label.indexOf("受理されたキャリアアップ計画書")>=0&&r.status==="draft"));
+  push("retrospective-contract-manual",a.rows.some(r=>r.label.indexOf("雇用契約書")>=0&&r.status==="manual"));
+  const unread=[{name:"キャリアアップ助成金_賃金台帳.pdf",text:"",readable:false,error:"OCR failed"}];
+  const b=checkFiles(unread);
+  push("unreadable-not-missing",b.rows.some(r=>r.label.indexOf("賃金台帳")>=0&&r.status==="unknown"));
+  const app=[
+    {name:"キャリアアップ助成金支給申請書_様式第3号.pdf",text:"キャリアアップ助成金支給申請書 様式第3号",readable:true},
+    {name:"別添様式1-1.pdf",text:"正社員化コース内訳 別添様式1-1",readable:true},
+    {name:"別添様式1-2.pdf",text:"正社員化コース対象労働者詳細 別添様式1-2",readable:true},
+    {name:"支給要件確認申立書.pdf",text:"支給要件確認申立書 共通要領様式第1号",readable:true},
+    {name:"キャリアアップ計画書_受理済.pdf",text:"キャリアアップ計画書 正社員化コース",readable:true},
+    {name:"就業規則.pdf",text:"就業規則 正社員転換制度",readable:true},
+    {name:"雇用契約書.pdf",text:"雇用契約書 労働条件通知書",readable:true},
+    {name:"賃金台帳_3パーセント計算.pdf",text:"賃金台帳 賃金上昇要件確認ツール 3％以上増額",readable:true}
+  ];
+  const d=checkFiles(app);
+  push("application-stage",d.stage==="APPLICATION",d.stage);
+  push("four-application-docs-good",d.rows.filter(r=>r.group==="申請書類").every(r=>r.status==="good"));
+  return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
+}
+root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,selfTest};
 })(window);
