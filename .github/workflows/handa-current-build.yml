@@ -14,7 +14,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - run: python handa/verify.py
+      - run: node --check handa/career-r8.js
+      - name: Run FORM RULE PACK self-test
+        shell: bash
+        run: |
+          node - <<'NODE'
+          global.window=global;
+          require("./handa/career-r8.js");
+          const r=global.CareerUpR8Pack.selfTest();
+          console.log(JSON.stringify(r,null,2));
+          if(r.pass!==r.total) process.exit(1);
+          NODE
       - name: Build CURRENT zip
         run: |
           rm -rf dist-handa
