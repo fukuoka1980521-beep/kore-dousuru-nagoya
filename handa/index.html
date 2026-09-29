@@ -80,6 +80,7 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
   .days{grid-template-columns:1fr}
   .searchrow .btn{width:100%}
 }
+@media print{header,.heroAssist,nav,#search,.filebox,#sources,footer,.chips,.tabs{display:none!important}body{background:white}.app{max-width:none}.panel{box-shadow:none;border:0}#assist{display:block!important}#docResults{display:block!important}}
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -186,7 +187,7 @@ footer{margin-top:30px;border-top:1px solid var(--line);padding:24px 0;color:var
           <label for="docFiles"><b>申請書と添付資料を選択</b></label><br>
           <input id="docFiles" type="file" accept="image/*,.pdf,application/pdf" multiple>
           <p class="small">最大20ファイル・各15MB・合計120MBまで。画像はOCR、PDFは最大20ページまで文字情報を優先してブラウザ内で解析します。ファイルそのものは当サイトに保存しません。</p>
-          <button class="btn" id="docCheckBtn">申請前チェックを開始</button> <button class="btn" id="docClearBtn" style="background:white;color:var(--brand);border:1px solid var(--brand)">選択と結果を消す</button>
+          <button class="btn" id="docCheckBtn">申請前チェックを開始</button> <button class="btn" id="docClearBtn" style="background:white;color:var(--brand);border:1px solid var(--brand)">選択と結果を消す</button> <button class="btn" id="docPrintBtn" style="background:white;color:var(--brand);border:1px solid var(--brand)">結果を印刷／PDF保存</button>
           <div id="docProgress" class="progress"></div>
         </div>
         <div id="docResults" class="resultBlock" aria-live="polite"></div>
@@ -385,6 +386,7 @@ async function runDocCheck(){
 }
 document.getElementById('docCheckBtn').addEventListener('click',runDocCheck);
 document.getElementById('docClearBtn').addEventListener('click',()=>{document.getElementById('docFiles').value='';document.getElementById('docResults').innerHTML='';document.getElementById('docProgress').textContent='';});
+document.getElementById('docPrintBtn').addEventListener('click',()=>{if(!document.getElementById('docResults').textContent.trim()){alert('先に書類チェックを実行してください。');return}window.print();});
 
 const checked=new Date(D.meta.verifiedAt+'T00:00:00+09:00');
 const age=(Date.now()-checked.getTime())/86400000;
