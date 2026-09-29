@@ -4,8 +4,9 @@ import re, sys
 root=Path(__file__).resolve().parent
 idx=(root/"index.html").read_text(encoding="utf-8")
 js=(root/"career-r8.js").read_text(encoding="utf-8")
+vm=re.search(r"CAREER_UP_R8_20260408_V1_(\\d+)_20260929",js)
 checks={
- "career_version":"CAREER_UP_R8_20260408_V1_8_20260929" in js,
+ "career_version":bool(vm and int(vm.group(1))>=9),
  "official_qa":"001729696.pdf" in js,
  "checklist":"001688027.pdf" in js,
  "monthly_audit":"monthlyWageAudit" in js,
