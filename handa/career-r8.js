@@ -1,6 +1,6 @@
 (function(root){
 "use strict";
-const VERSION="CAREER_UP_R8_20260408_V1_2_20260929";
+const VERSION="CAREER_UP_R8_20260408_V1_3_20260929";
 const SOURCE={
   ministry:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/part_haken/jigyounushi/career.html",
   forms:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000118801_00022.html",
@@ -59,9 +59,174 @@ function addDoc(rows,records,group,label,rule,opts){
   const s=evidenceState(records,rule,opts);
   rows.push(row(group,s.status,label,s.detail));
 }
+
+const DATE_TOKEN="(?:令和(?:元|[0-9]+)年[0-9]{1,2}月[0-9]{1,2}日|20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日|20[0-9]{2}[-/.][0-9]{1,2}[-/.][0-9]{1,2})";
+function parseDateToken(raw){
+  const s=String(raw||"").normalize("NFKC").replace(/[\s　]+/g,"");
+  let m=s.match(/^令和(元|[0-9]+)年([0-9]{1,2})月([0-9]{1,2})日$/);
+  let y,mo,d;
+  if(m){y=2018+(m[1]==="元"?1:Number(m[1]));mo=Number(m[2]);d=Number(m[3]);}
+  else{
+    m=s.match(/^(20[0-9]{2})年([0-9]{1,2})月([0-9]{1,2})日$/)||s.match(/^(20[0-9]{2})[-/.]([0-9]{1,2})[-/.]([0-9]{1,2})$/);
+    if(!m)return null;
+    y=Number(m[1]);mo=Number(m[2]);d=Number(m[3]);
+  }
+  const dt=new Date(Date.UTC(y,mo-1,d));
+  if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;
+  return String(y).padStart(4,"0")+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+}
+function dateToUtc(iso){if(!/^20[0-9]{2}-[0-9]{2}-[0-9]{2}$/.test(String(iso||"")))return null;const p=iso.split("-").map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2]));}
+function addMonthsIso(iso,n){const d=dateToUtc(iso);if(!d)return null;const day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+n);const last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();d.setUTCDate(Math.min(day,last));return d.toISOString().slice(0,10);}
+function isBefore(a,b){const da=dateToUtc(a),db=dateToUtc(b);return !!(da&&db&&da.getTime()<db.getTime());}
+function isOnOrBefore(a,b){const da=dateToUtc(a),db=dateToUtc(b);return !!(da&&db&&da.getTime()<=db.getTime());}
+function qualityOf(r){if(!r||r.readable===false)return "unreadable";if(looksDraft(r))return "draft";if(looksRetrospective(r))return "retrospective";return "formal";}
+function labeledDates(r,labelRe,maxGap){
+  const t=compact(safeText(r)),gap=Number.isFinite(maxGap)?maxGap:36;
+  const re=new RegExp("("+labelRe+")[:：]?[\\s\\S]{0,"+gap+"}?("+DATE_TOKEN+")","g");
+  const out=[];let m;
+  while((m=re.exec(t))!==null){const iso=parseDateToken(m[2]);if(iso)out.push({date:iso,label:m[1],record:safeName(r),quality:qualityOf(r)});}
+  return out;
+}
+function planPeriods(records){
+  const out=[];
+  readableRecords(records).forEach(r=>{
+    const t=compact(safeText(r));
+    if(!/キャリアアップ計画/.test(compact(safeName(r)+" "+safeText(r))))return;
+    const re=new RegExp("計画期間[:：]?[\\s\\S]{0,80}?("+DATE_TOKEN+")[\\s\\S]{0,30}?(?:から|～|〜|~|－|-|至)[\\s\\S]{0,30}?("+DATE_TOKEN+")","g");
+    let m;while((m=re.exec(t))!==null){const a=parseDateToken(m[1]),b=parseDateToken(m[2]);if(a&&b)out.push({start:a,end:b,record:safeName(r),quality:qualityOf(r)});}
+  });
+  return out;
+}
+function actualTransferDates(records){
+  const out=[];
+  readableRecords(records).forEach(r=>{
+    const c=compact(safeName(r)+" "+safeText(r));
+    const application=/支給申請書|正社員化コース内訳|対象労働者詳細|別添様式[1１][-－ー]?[12１２]/.test(c);
+    const postContract=/正社員雇用契約書|雇用区分[:：]?正社員|契約期間[:：]?期間の定めなし.*正社員/.test(c);
+    if(application){
+      out.push(...labeledDates(r,"正社員転換日|転換日|正社員化日",45));
+    }
+    if(postContract){
+      const ds=labeledDates(r,"正社員転換日|転換日|正社員化日|雇用開始日",45);
+      out.push(...ds);
+    }
+  });
+  return out;
+}
+function plannedTransferDates(records){
+  const out=[];
+  readableRecords(records).forEach(r=>{
+    const c=compact(safeName(r)+" "+safeText(r));
+    if(/キャリアアップ計画|転換予定/.test(c))out.push(...labeledDates(r,"正社員転換予定日|転換予定日|転換予定|取組開始・転換予定",55));
+  });
+  return out;
+}
+function planAcceptedDates(records){
+  const out=[];
+  readableRecords(records).forEach(r=>{
+    const c=compact(safeName(r)+" "+safeText(r));
+    if(/キャリアアップ計画/.test(c))out.push(...labeledDates(r,"受理日|受付日|提出日",35));
+  });
+  return out;
+}
+function ruleEffectiveDates(records){
+  const out=[];
+  readableRecords(records).forEach(r=>{
+    const c=compact(safeName(r)+" "+safeText(r));
+    if(/就業規則|雇用区分規程|賃金規程|正社員転換規程/.test(c))out.push(...labeledDates(r,"施行日|適用開始日|施行",35));
+  });
+  return out;
+}
+function wageFacts(records){
+  const facts=[];
+  readableRecords(records).forEach(r=>{
+    const c=compact(safeName(r)+" "+safeText(r)),q=qualityOf(r);
+    let m;
+    if(/時給制|時間給|時給/.test(c)){
+      m=c.match(/(?:基本賃金|時間給|時給)[:：]?([0-9,]{3,})円/);
+      if(m)facts.push({side:"pre",unit:"hour",amount:Number(m[1].replace(/,/g,"")),record:safeName(r),quality:q});
+    }
+    if(/正社員/.test(c)){
+      m=c.match(/(?:基本月給|基本給|月給)[:：]?([0-9,]{4,})円/);
+      if(m)facts.push({side:"post",unit:"month",amount:Number(m[1].replace(/,/g,"")),record:safeName(r),quality:q});
+      m=c.match(/(?:時間給|時給)[:：]?([0-9,]{3,})円/);
+      if(m)facts.push({side:"post",unit:"hour",amount:Number(m[1].replace(/,/g,"")),record:safeName(r),quality:q});
+    }
+  });
+  return facts;
+}
+function uniqueFormalDates(entries){return [...new Set((entries||[]).filter(x=>x.quality==="formal").map(x=>x.date))];}
+function consistencyRow(status,label,detail){return row("書類同士の整合",status,label,detail);}
+function consistencyChecks(records){
+  const rows=[];
+  const actual=actualTransferDates(records),planned=plannedTransferDates(records);
+  const actualFormal=uniqueFormalDates(actual),plannedFormal=uniqueFormalDates(planned);
+  let transfer=null;
+  if(actualFormal.length>1){
+    rows.push(consistencyRow("conflict","正社員転換日の一致","正式資料から複数の転換日候補（"+actualFormal.join(" / ")+"）を検出しました。OCR誤読を含め原本で確認してください。"));
+  }else if(actualFormal.length===1){
+    transfer=actualFormal[0];
+    rows.push(consistencyRow("match","正社員転換日","正式資料から転換日候補 "+transfer+" を検出しました。別の正式資料にも同日が記載されているか確認します。"));
+  }else if(actual.some(x=>x.quality==="draft")||planned.some(x=>x.quality==="draft")){
+    rows.push(consistencyRow("draft","正社員転換日","草案・予定資料から日付候補は読み取れますが、正式な転換日としては扱いません。"));
+  }else if(plannedFormal.length){
+    rows.push(consistencyRow("manual","正社員転換日","計画上の転換予定日は読み取れますが、実際の転換日を正式資料から確認できません。"));
+  }else{
+    rows.push(consistencyRow("unknown","正社員転換日","書類間照合に使える正式な転換日を確認できません。"));
+  }
+
+  if(transfer&&plannedFormal.length===1){
+    rows.push(consistencyRow(plannedFormal[0]===transfer?"match":"conflict","計画上の転換予定日と実際の転換日",plannedFormal[0]===transfer?"計画上の予定日と正式資料の転換日が一致しています。":"計画上の予定日 "+plannedFormal[0]+" と正式資料の転換日 "+transfer+" が一致しません。計画変更届の有無も含め原本確認が必要です。"));
+  }
+
+  const periods=planPeriods(records).filter(x=>x.quality==="formal");
+  if(transfer&&periods.length){
+    const containing=periods.filter(p=>isOnOrBefore(p.start,transfer)&&isOnOrBefore(transfer,p.end));
+    rows.push(consistencyRow(containing.length?"match":"conflict","転換日がキャリアアップ計画期間内か",containing.length?"転換日 "+transfer+" は読み取れた計画期間内です。":"転換日 "+transfer+" が読み取れた計画期間内に入りません。OCR誤読・変更届・別計画の有無を確認してください。"));
+  }else{
+    rows.push(consistencyRow("unknown","転換日がキャリアアップ計画期間内か","転換日または正式な計画期間を十分に読み取れないため自動照合できません。"));
+  }
+
+  const accepted=planAcceptedDates(records).filter(x=>x.quality==="formal");
+  const acceptedDates=[...new Set(accepted.map(x=>x.date))];
+  if(transfer&&acceptedDates.length===1){
+    rows.push(consistencyRow(isBefore(acceptedDates[0],transfer)?"match":"conflict","計画の受理・提出日と転換日の前後関係",isBefore(acceptedDates[0],transfer)?"読み取れた日付上、計画の受理・提出日 "+acceptedDates[0]+" は転換日 "+transfer+" より前です。":"計画の受理・提出日候補 "+acceptedDates[0]+" が転換日 "+transfer+" より前になっていません。原本の受理日を最優先で確認してください。"));
+  }else{
+    rows.push(consistencyRow("unknown","計画の受理・提出日と転換日の前後関係","受理日・提出日または正式な転換日を一意に読み取れないため自動照合しません。"));
+  }
+
+  const eff=ruleEffectiveDates(records).filter(x=>x.quality==="formal");
+  const effDates=[...new Set(eff.map(x=>x.date))];
+  if(transfer&&effDates.length===1){
+    const six=addMonthsIso(effDates[0],6);
+    if(six&&isOnOrBefore(six,transfer)){
+      rows.push(consistencyRow("manual","賃金規定等の6か月適用期間","施行日候補 "+effDates[0]+" から転換日 "+transfer+" までは日付上6か月以上あります。ただし、この規程が対象労働者に実際に6か月以上適用されたことは原本・運用記録で人間確認が必要です。"));
+    }else{
+      rows.push(consistencyRow("risk","賃金規定等の6か月適用期間","施行日候補 "+effDates[0]+" から転換日 "+transfer+" までは日付上6か月未満です。より前から適用されていた別規程がないか確認してください。なければ要件に抵触する可能性があります。"));
+    }
+  }else{
+    rows.push(consistencyRow("unknown","賃金規定等の6か月適用期間","正式な規程施行日と転換日を一意に読み取れないため自動判定しません。"));
+  }
+
+  const wf=wageFacts(records);
+  const pre=wf.find(x=>x.side==="pre"&&x.quality==="formal"),post=wf.find(x=>x.side==="post"&&x.quality==="formal");
+  if(pre&&post){
+    const fmt=x=>x.amount.toLocaleString("ja-JP")+"円/"+(x.unit==="hour"?"時":"月");
+    if(pre.unit!==post.unit){
+      rows.push(consistencyRow("manual","転換前後の賃金比較","転換前 "+fmt(pre)+"、転換後 "+fmt(post)+" の候補を抽出しました。支給形態が異なるため、3％要件は自動計算せず、所定労働時間・対象手当を含む公式計算方法で確認してください。"));
+    }else{
+      rows.push(consistencyRow("manual","転換前後の賃金比較","転換前 "+fmt(pre)+"、転換後 "+fmt(post)+" の候補を抽出しました。同じ単位でも、3％要件に含める賃金・手当の範囲確認が必要なため自動確定しません。"));
+    }
+  }else{
+    rows.push(consistencyRow("unknown","転換前後の賃金比較","転換前後の比較に必要な賃金値を正式資料から十分に抽出できません。"));
+  }
+  return rows;
+}
+
 function checkFiles(records){
   records=(records||[]).map(r=>({name:safeName(r),text:safeText(r),readable:r&&r.readable!==false,error:r&&r.error||""}));
   const rows=[],stage=inferStage(records),future=stage==="PREPARATION";
+  rows.push(...consistencyChecks(records));
   const c=corpus(records),phase2=/第[2２]期/.test(c);
 
   addDoc(rows,records,"申請書類","支給申請書（様式第3号）",
@@ -162,7 +327,29 @@ function selfTest(){
   const d=checkFiles(app);
   push("application-stage",d.stage==="APPLICATION",d.stage);
   push("four-application-docs-good",d.rows.filter(r=>r.group==="申請書類").every(r=>r.status==="good"));
+  const consistent=[
+    {name:"正式申請_内訳.pdf",text:"キャリアアップ助成金支給申請書 正社員化コース内訳 正社員転換日 2026年10月1日",readable:true},
+    {name:"対象労働者詳細.pdf",text:"正社員化コース対象労働者詳細 転換日 2026年10月1日",readable:true},
+    {name:"キャリアアップ計画書_受理済.pdf",text:"キャリアアップ計画書 計画期間 2026年4月1日から2030年3月31日 受理日 2026年9月1日",readable:true},
+    {name:"就業規則.pdf",text:"就業規則 施行日 2026年3月1日 正社員転換制度",readable:true}
+  ];
+  const e=checkFiles(consistent);
+  push("consistency-transfer-date",e.rows.some(r=>r.group==="書類同士の整合"&&r.label==="正社員転換日"&&r.status==="match"));
+  push("consistency-plan-period",e.rows.some(r=>r.group==="書類同士の整合"&&r.label==="転換日がキャリアアップ計画期間内か"&&r.status==="match"));
+  push("consistency-plan-before-transfer",e.rows.some(r=>r.group==="書類同士の整合"&&r.label==="計画の受理・提出日と転換日の前後関係"&&r.status==="match"));
+  const conflict=[
+    {name:"申請書.pdf",text:"キャリアアップ助成金支給申請書 正社員転換日 2026年10月1日",readable:true},
+    {name:"対象労働者詳細.pdf",text:"正社員化コース対象労働者詳細 転換日 2026年10月2日",readable:true}
+  ];
+  const f2=checkFiles(conflict);
+  push("consistency-conflict-detected",f2.rows.some(r=>r.group==="書類同士の整合"&&r.label==="正社員転換日の一致"&&r.status==="conflict"));
+  const shortRule=[
+    {name:"申請書.pdf",text:"キャリアアップ助成金支給申請書 正社員転換日 2026年10月1日",readable:true},
+    {name:"就業規則.pdf",text:"就業規則 施行日 2026年9月1日 正社員転換制度",readable:true}
+  ];
+  const g=checkFiles(shortRule);
+  push("six-month-risk",g.rows.some(r=>r.group==="書類同士の整合"&&r.label==="賃金規定等の6か月適用期間"&&r.status==="risk"));
   return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
 }
-root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,selfTest};
+root.CareerUpR8Pack={VERSION,SOURCE,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,selfTest};
 })(window);
