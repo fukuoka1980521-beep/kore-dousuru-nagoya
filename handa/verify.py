@@ -22,6 +22,7 @@ checks={
  "partial_pdf":"PDF_PARTIAL" in idx and "PDFの未読ページあり" in js,
  "provenance":"FORM RULE PACK" in idx and "解析対象ファイル" in idx,
  "dependency_pin":"tesseract.js@5.1.1" in idx and "pdf.js/3.11.174" in idx,
+ "career_search":"career_up_regularization" in idx and "契約社員を正社員にしたい" in idx and "厚生労働省公式情報" in idx,
 }
 bad=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(("PASS" if v else "FAIL"),k)
