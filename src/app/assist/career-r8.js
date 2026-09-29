@@ -1,6 +1,6 @@
 (function(root){
 "use strict";
-const VERSION="CAREER_UP_R8_20260408_V1_7_20260929";
+const VERSION="CAREER_UP_R8_20260408_V1_8_20260929";
 const SOURCE={
   ministry:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/part_haken/jigyounushi/career.html",
   forms:"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000118801_00022.html",
@@ -554,9 +554,20 @@ function consistencyChecks(records){
   return rows;
 }
 
+
+function partialDocumentRows(records){
+  const rows=[];
+  (records||[]).forEach(r=>{
+    const m=safeText(r).match(/\[\[PDF_PARTIAL pages=(\d+) read=(\d+)\]\]/);
+    if(m)rows.push(row("重要な検出","risk","PDFの未読ページあり","「"+shortFile(safeName(r))+"」は全"+m[1]+"ページ中"+m[2]+"ページまでを解析しました。未読ページに必要事項がある可能性があるため、この結果を完全チェック扱いにしません。PDFを分割して残りも確認してください。"));
+  });
+  return rows;
+}
+
 function checkFiles(records){
   records=(records||[]).map(r=>({name:safeName(r),text:safeText(r),readable:r&&r.readable!==false,error:r&&r.error||""}));
   const rows=[],stage=inferStage(records),future=stage==="PREPARATION";
+  rows.push(...partialDocumentRows(records));
   rows.push(...consistencyChecks(records));
   const c=corpus(records),phase2=/第[2２]期/.test(c);
 
@@ -624,7 +635,7 @@ function checkFiles(records){
   };
   return {
     version:VERSION,course:"正社員化コース",stage,phase:phase2?"第2期として確認":"第1期として確認（第2期表記を検出していないため）",
-    rows,summary,sources:SOURCE,
+    rows,summary,sources:SOURCE,sourceMeta:SOURCE_META,
     notice:"厚生労働省の令和8年4月8日以降用・正社員化コース支給申請チェックリストを基礎にした提出前セルフチェックです。公式ルール最終確認 "+SOURCE_META.verifiedAt+"。受理・支給を保証しません。"
   };
 }
@@ -763,7 +774,10 @@ function selfTest(){
   ];
   const w=checkFiles(inPeriod);
   push("pack-gate-current",w.rows.some(r=>r.label==="適用する制度ルール版"&&r.status==="match"));
+  const partial=[{name:"長い申請資料.pdf",text:"キャリアアップ助成金 [[PDF_PARTIAL pages=35 read=20]]",readable:true}];
+  const x=checkFiles(partial);
+  push("partial-pdf-warning",x.rows.some(r=>r.label==="PDFの未読ページあり"&&r.status==="risk"&&r.detail.indexOf("35ページ中20ページ")>=0));
   return {version:VERSION,pass:cases.filter(x=>x.ok).length,total:cases.length,cases};
 }
-root.CareerUpR8Pack={VERSION,SOURCE,SOURCE_META,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,monthlyWageAudit,wageIncreaseCandidate,applicablePackRows,selfTest};
+root.CareerUpR8Pack={VERSION,SOURCE,SOURCE_META,detect,detectFiles,check,checkFiles,inferStage,consistencyChecks,monthlyWageAudit,wageIncreaseCandidate,applicablePackRows,partialDocumentRows,selfTest};
 })(window);
