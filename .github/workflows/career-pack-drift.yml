@@ -1,0 +1,21 @@
+name: Career Up common pack drift
+on:
+  schedule:
+    - cron: "43 21 * * *"
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "src/app/assist/career-r8.js"
+      - "handa/career-r8.js"
+      - "tests/check-career-pack-drift.py"
+      - ".github/workflows/career-pack-drift.yml"
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tests/check-career-pack-drift.py
