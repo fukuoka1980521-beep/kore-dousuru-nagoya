@@ -1,6 +1,6 @@
 # CAREER_UP_R8 FORM RULE PACK
 
-Version: CAREER_UP_R8_20260408_V1_7_20260929  
+Version: CAREER_UP_R8_20260408_V1_8_20260929  
 Official verified: 2026-09-29
 
 対象:
@@ -45,3 +45,7 @@ Official verified: 2026-09-29
 - 2.99％を3％扱いしない
 - 算定除外手当・固定残業・特殊手当は人間確認
 - 支給可否は確定しない
+
+監査追跡:
+- 20ページを超えるPDFは未読ページを明示し、完全チェック扱いにしない
+- 結果にFORM RULE PACK版・公式確認日・解析対象ファイルを表示する
