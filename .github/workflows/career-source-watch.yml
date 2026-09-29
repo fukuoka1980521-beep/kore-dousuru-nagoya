@@ -1,0 +1,20 @@
+name: Career Up official source watch
+on:
+  schedule:
+    - cron: "17 21 * * *"
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "scripts/check-career-sources.py"
+      - "monitor/career-source-baseline.json"
+      - ".github/workflows/career-source-watch.yml"
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/check-career-sources.py
