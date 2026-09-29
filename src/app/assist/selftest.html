@@ -1,7 +1,0 @@
-<!doctype html><html lang="ja"><meta charset="utf-8"><title>CareerUp Pack Self Test</title>
-<body><pre id="out">RUNNING</pre><script src="career-r8.js"></script><script>
-try{
- const r=window.CareerUpR8Pack.selfTest();
- document.getElementById('out').textContent=(r.pass===r.total?'PASS ':'FAIL ')+r.pass+'/'+r.total+'\n'+JSON.stringify(r,null,2);
-}catch(e){document.getElementById('out').textContent='ERROR '+e.stack}
-</script></body></html>
