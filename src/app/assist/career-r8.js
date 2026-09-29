@@ -847,11 +847,11 @@ function selfTest(){
     {name:"転換前_賃金台帳.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 所定労働時間 160時間 2026年5月 算定対象賃金 200000円 所定労働時間 160時間 2026年6月 算定対象賃金 200000円 所定労働時間 160時間 2026年7月 算定対象賃金 200000円 所定労働時間 160時間 2026年8月 算定対象賃金 200000円 所定労働時間 160時間 2026年9月 算定対象賃金 200000円 所定労働時間 160時間 転換前 支給形態 月給",readable:true},
     {name:"転換後_賃金台帳.pdf",text:"転換後 2026年10月 算定対象賃金 210000円 所定労働時間 160時間 2026年11月 算定対象賃金 210000円 所定労働時間 160時間 2026年12月 算定対象賃金 210000円 所定労働時間 160時間 2027年1月 算定対象賃金 210000円 所定労働時間 160時間 2027年2月 算定対象賃金 210000円 所定労働時間 160時間 2027年3月 算定対象賃金 210000円 所定労働時間 160時間 転換後 支給形態 月給",readable:true}
   ];
-  const q=checkFiles(month6);
-  push("monthly-six-by-six-candidate",q.rows.some(r=>r.label==="転換前6か月の月別賃金"&&r.status==="match")&&q.rows.some(r=>r.label==="転換後6か月の月別賃金"&&r.status==="match")&&q.rows.some(r=>r.label==="3％賃金増額の計算候補"&&r.status==="candidate"));
+  const q2=checkFiles(month6);
+  push("monthly-six-by-six-candidate",q2.rows.some(r=>r.label==="転換前6か月の月別賃金"&&r.status==="match")&&q2.rows.some(r=>r.label==="転換後6か月の月別賃金"&&r.status==="match")&&q2.rows.some(r=>r.label==="3％賃金増額の計算候補"&&r.status==="candidate"));
   const month5=[{name:"転換前_賃金台帳.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 2026年5月 算定対象賃金 200000円 2026年6月 算定対象賃金 200000円 2026年7月 算定対象賃金 200000円 2026年8月 算定対象賃金 200000円",readable:true}];
-  const r2=checkFiles(month5);
-  push("monthly-five-detected",r2.rows.some(r=>r.label==="転換前6か月の月別賃金"&&r.status==="risk"&&r.detail.indexOf("5/6")>=0));
+  const r3=checkFiles(month5);
+  push("monthly-five-detected",r3.rows.some(r=>r.label==="転換前6か月の月別賃金"&&r.status==="risk"&&r.detail.indexOf("5/6")>=0));
   const dup=[{name:"転換前_賃金台帳.pdf",text:"転換前 2026年4月 算定対象賃金 200000円 2026年4月 算定対象賃金 210000円",readable:true}];
   const s=checkFiles(dup);
   push("monthly-duplicate-conflict",s.rows.some(r=>r.label==="転換前の月別賃金台帳"&&r.status==="conflict"));
