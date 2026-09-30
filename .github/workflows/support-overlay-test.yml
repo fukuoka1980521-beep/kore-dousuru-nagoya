@@ -3,14 +3,18 @@ on:
   push:
     paths:
       - "src/app/support-overlay.js"
+      - "src/app/coverage-gap-overlay.js"
       - "src/app/index.html"
       - "tests/support-overlay.test.cjs"
+      - "tests/coverage-gap-overlay.test.cjs"
       - ".github/workflows/support-overlay-test.yml"
   pull_request:
     paths:
       - "src/app/support-overlay.js"
+      - "src/app/coverage-gap-overlay.js"
       - "src/app/index.html"
       - "tests/support-overlay.test.cjs"
+      - "tests/coverage-gap-overlay.test.cjs"
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,3 +24,4 @@ jobs:
         with:
           node-version: "22"
       - run: node tests/support-overlay.test.cjs
+      - run: node tests/coverage-gap-overlay.test.cjs
