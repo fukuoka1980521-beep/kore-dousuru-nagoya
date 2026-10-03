@@ -308,3 +308,9 @@ delegation 0件のRunでは省略してよい。「待ってよい」は「無�
 新しい承認カテゴリではない）。
 
 <!-- END AUTONOMY-MANAGED-BLOCK v1 -->
+
+
+## AI Runtime Cost/Performance
+
+生成AIを利用する設計・実装は `docs/AI_RUNTIME_PROFILE.md` を参照し、Development OS の `docs/AI_RUNTIME_COST_PERFORMANCE_STANDARD.md` v1.0 に従う。
+deterministic に解けるものへ LLM を使わず、Luna-first / Sol escalation / structured state / verifier / telemetry を基本とする。
