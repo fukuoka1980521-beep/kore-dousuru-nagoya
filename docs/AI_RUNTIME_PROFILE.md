@@ -15,7 +15,7 @@ Profile: DETERMINISTIC_HEAVY
 ## Model routing
 - NO_LLM for canonical municipal facts when structured data resolves the answer.
 - gpt-6-luna for ordinary interpretation/explanation.
-- gpt-6-sol only for material ambiguity or conflicting source interpretation.
+- gpt-6.1-sol only for material ambiguity or conflicting source interpretation.
 - gpt-6-astra offline only.
 
 ## Verification
